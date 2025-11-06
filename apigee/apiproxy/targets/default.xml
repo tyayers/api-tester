@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<TargetEndpoint name="default">
+  <HTTPTargetConnection>
+    <Properties/>
+    <URL>https://mocktarget.apigee.net</URL>
+  </HTTPTargetConnection>
+  <PreFlow name="PreFlow">
+    <Request/>
+    <Response/>
+  </PreFlow>
+  <PostFlow name="PostFlow">
+    <Request/>
+    <Response/>
+  </PostFlow>
+  <EventFlow name="EventFlow" content-type="text/event-stream">
+    <Response/>
+  </EventFlow>
+  <DefaultFaultRule name="default-fault">
+    <AlwaysEnforce>true</AlwaysEnforce>
+    <Step>
+      <Name>JS-RunTest</Name>
+      <Condition>upstream.testCase != null</Condition>
+    </Step>
+    <Step>
+      <Name>SC-SaveResults</Name>
+      <Condition>upstream.testResults != null</Condition>
+    </Step>
+  </DefaultFaultRule>
+</TargetEndpoint>

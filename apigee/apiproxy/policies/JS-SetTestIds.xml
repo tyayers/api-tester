@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Javascript continueOnError="false" enabled="true" timeLimit="200" name="JS-SetTestIds">
+  <DisplayName>JS-SetTestIds</DisplayName>
+  <Properties/>
+  <ResourceURL>jsc://set-test-id.js</ResourceURL>
+</Javascript>

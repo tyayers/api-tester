@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<APIProxy revision="29" name="Feature-TESTER-v1">
+  <DisplayName/>
+  <Description/>
+  <CreatedAt>1762434824098</CreatedAt>
+  <LastModifiedAt>1762435176155</LastModifiedAt>
+  <BasePaths>/feature-tester-v1</BasePaths>
+  <Policies>
+    <Policy>JS-SetTestData</Policy>
+    <Policy>JS-RunTest</Policy>
+    <Policy>SC-GetTestCases</Policy>
+    <Policy>JS-SetTestIds</Policy>
+    <Policy>SC-SaveResults</Policy>
+  </Policies>
+  <ProxyEndpoints>
+    <ProxyEndpoint>default</ProxyEndpoint>
+  </ProxyEndpoints>
+  <Resources>
+    <Resource>jsc://set-test.js</Resource>
+    <Resource>jsc://templater-manifest.js</Resource>
+    <Resource>jsc://run-test.js</Resource>
+    <Resource>jsc://set-test-id.js</Resource>
+  </Resources>
+  <TargetEndpoints>
+    <TargetEndpoint>default</TargetEndpoint>
+  </TargetEndpoints>
+</APIProxy>

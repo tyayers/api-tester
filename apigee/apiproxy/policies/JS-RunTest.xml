@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Javascript continueOnError="false" enabled="true" timeLimit="200" name="JS-RunTest">
+  <DisplayName>JS-RunTest</DisplayName>
+  <Properties/>
+  <ResourceURL>jsc://run-test.js</ResourceURL>
+</Javascript>
