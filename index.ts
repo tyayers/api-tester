@@ -21,6 +21,7 @@ app.use(
 );
 
 const basePath = process.env.BASE_PATH ?? "./data";
+const index = loadIndex();
 
 app.get("/tests/:id", function (req, res) {
   let responseType = req.header("Accept");
@@ -57,17 +58,11 @@ app.put("/tests/:id", function (req, res) {
   else if (!tests) tests = {};
   tests.id = req.params.id;
 
-  saveTests(tests, requestType);
+  let saveResult = saveTests(tests, requestType);
 
-  if (responseType == "application/yaml") {
-    res.setHeader("Content-Type", "application/yaml");
-    res.status(200).send(
-      YAML.stringify(tests, {
-        aliasDuplicateObjects: false,
-        blockQuote: "literal",
-      }),
-    );
-  } else res.send(JSON.stringify(tests, null, 2));
+  if (!saveResult) {
+    res.status(404).send("Test not found.");
+  } else res.send("OK.");
 });
 
 app.post("/tests", function (req, res) {
@@ -85,22 +80,32 @@ app.post("/tests", function (req, res) {
   // create directory
   fs.mkdirSync(`${basePath}/${uuid}`, { recursive: true });
 
-  // save tests, if sent
+  // save tests.yaml and results.yaml
   saveTests(tests, requestType);
-  // create empty results
-  let results = {
-    results: {},
-  };
-  saveResults(tests.id, results);
+
   if (responseType == "application/yaml") {
     res.setHeader("Content-Type", "application/yaml");
     res.status(201).send(
-      YAML.stringify(tests, {
-        aliasDuplicateObjects: false,
-        blockQuote: "literal",
-      }),
+      YAML.stringify(
+        {
+          id: tests.id,
+        },
+        {
+          aliasDuplicateObjects: false,
+          blockQuote: "literal",
+        },
+      ),
     );
-  } else res.status(201).send(JSON.stringify(tests, null, 2));
+  } else
+    res.status(201).send(
+      JSON.stringify(
+        {
+          id: tests.id,
+        },
+        null,
+        2,
+      ),
+    );
 });
 
 app.post("/tests/:id/results", function (req, res) {
@@ -114,38 +119,21 @@ app.post("/tests/:id/results", function (req, res) {
   let testCaseResults: any = req.body;
   if (testCaseResults && requestType == "application/yaml")
     testCaseResults = YAML.parse(testCaseResults);
-
-  let resultsContent = fs.readFileSync(
-    `${basePath}/${req.params.id}/results.yaml`,
-    "utf8",
-  );
-  let results: any = YAML.parse(resultsContent);
+  let testCaseId = "";
   if (
-    results &&
-    results.results &&
     testCaseResults &&
     testCaseResults.extra &&
     testCaseResults.extra.testCase
-  ) {
-    if (!results.results[testCaseResults.extra.testCase])
-      results.results[testCaseResults.extra.testCase] = [];
-    results.results[testCaseResults.extra.testCase].push(testCaseResults);
-  } else {
-    console.error("Could not save test results!");
-    console.error(testCaseResults);
-    console.error(results);
-  }
-  saveResults(req.params.id, results);
+  )
+    testCaseId = testCaseResults.extra.testCase;
 
+  // update results overview
+  updateResults(req.params.id, testCaseResults);
+  updateTestCaseResults(req.params.id, testCaseId, testCaseResults);
   if (responseType == "application/yaml") {
     res.setHeader("Content-Type", "application/yaml");
-    res.status(200).send(
-      YAML.stringify(results, {
-        aliasDuplicateObjects: false,
-        blockQuote: "literal",
-      }),
-    );
-  } else res.send(JSON.stringify(results, null, 2));
+    res.status(200).send("OK.");
+  } else res.send("OK.");
 });
 
 app.get("/tests/:id/results", function (req, res) {
@@ -170,7 +158,34 @@ app.get("/tests/:id/results", function (req, res) {
   }
 });
 
-function saveTests(tests: any, requestType: string) {
+app.get("/tests/:id/results/:caseId", function (req, res) {
+  let responseType = req.header("Accept");
+  if (fs.existsSync(`${basePath}/${req.params.id}/${req.params.caseId}.yaml`)) {
+    let fileContents = fs.readFileSync(
+      `${basePath}/${req.params.id}/${req.params.caseId}.yaml`,
+      "utf8",
+    );
+    let results = YAML.parse(fileContents);
+    if (responseType == "application/yaml") {
+      res.setHeader("Content-Type", "application/yaml");
+      res.send(
+        YAML.stringify(results, {
+          aliasDuplicateObjects: false,
+          blockQuote: "literal",
+        }),
+      );
+    } else res.send(JSON.stringify(results, null, 2));
+  } else {
+    res.status(404).send("Not found.");
+  }
+});
+
+function saveTests(tests: any, requestType: string): boolean {
+  let result = true;
+  if (!fs.existsSync(`${basePath}/${tests.id}`)) {
+    result = false;
+    return result;
+  }
   switch (requestType) {
     case "application/yaml":
       // yaml
@@ -193,12 +208,149 @@ function saveTests(tests: any, requestType: string) {
       );
       break;
   }
+
+  // create results files, if not exist
+  if (!fs.existsSync(`${basePath}/${tests.id}/results.yaml`)) {
+    fs.writeFileSync(
+      `${basePath}/${tests.id}/results.yaml`,
+      YAML.stringify(
+        {
+          results: {},
+          updated: Date.now(),
+        },
+        {
+          aliasDuplicateObjects: false,
+          blockQuote: "literal",
+        },
+      ),
+    );
+  }
+
+  return result;
 }
 
-function saveResults(testId: string, results: any) {
+function updateResults(testId: string, testCaseResults: any): boolean {
+  let result = true;
+
+  let resultsContent = fs.readFileSync(
+    `${basePath}/${testId}/results.yaml`,
+    "utf8",
+  );
+  let results: any = undefined;
+  if (resultsContent) results = YAML.parse(resultsContent);
+  else {
+    result = false;
+    console.error(`Could not find results file for test ${testId}`);
+    return result;
+  }
+  if (
+    results &&
+    results.results &&
+    testCaseResults &&
+    testCaseResults.extra &&
+    testCaseResults.extra.testCase &&
+    testCaseResults.results &&
+    testCaseResults.results.summary
+  ) {
+    results.results[testCaseResults.extra.testCase] =
+      testCaseResults.results.summary;
+  } else {
+    result = false;
+    console.error("Could not save test results!");
+    console.error(testCaseResults);
+    console.error(results);
+    return result;
+  }
+  results.updated = Date.now();
+  if (index.tests[testId]) index.tests[testId].updated = results.updated;
+  else
+    index.tests[testId] = {
+      testCases: {},
+      updated: results.updated,
+    };
+
   fs.writeFileSync(
     `${basePath}/${testId}/results.yaml`,
     YAML.stringify(results, {
+      aliasDuplicateObjects: false,
+      blockQuote: "literal",
+    }),
+  );
+  return result;
+}
+
+function updateTestCaseResults(
+  testId: string,
+  testCaseId: string,
+  testCaseResults: any,
+): boolean {
+  let result = true;
+  let results: any = undefined;
+  if (fs.existsSync(`${basePath}/${testId}/${testCaseId}.yaml`)) {
+    let resultsContent = fs.readFileSync(
+      `${basePath}/${testId}/${testCaseId}.yaml`,
+      "utf8",
+    );
+    results = YAML.parse(resultsContent);
+  } else {
+    results = {
+      testCaseId: testCaseId,
+      results: [],
+    };
+  }
+
+  results.updated = Date.now();
+  index.tests[testId].testCases[testCaseId] = {
+    updated: results.updated,
+  };
+
+  if (results && results.results && testCaseResults) {
+    results.results.push(testCaseResults);
+
+    fs.writeFileSync(
+      `${basePath}/${testId}/${testCaseId}.yaml`,
+      YAML.stringify(results, {
+        aliasDuplicateObjects: false,
+        blockQuote: "literal",
+      }),
+    );
+  } else {
+    result = false;
+    console.error("Could not save test results!");
+    console.error(testCaseResults);
+    console.error(results);
+  }
+
+  return result;
+}
+
+function loadIndex(): any {
+  let result = {
+    tests: {},
+  };
+
+  if (fs.existsSync(`${basePath}/index.yaml`)) {
+    let fileContents = fs.readFileSync(`${basePath}/index.yaml`, "utf8");
+    if (fileContents) result = YAML.parse(fileContents);
+  } else {
+    // write first index
+    fs.writeFileSync(
+      `${basePath}/index.yaml`,
+      YAML.stringify(result, {
+        aliasDuplicateObjects: false,
+        blockQuote: "literal",
+      }),
+    );
+  }
+
+  return result;
+}
+
+function saveIndex() {
+  // write first index
+  fs.writeFileSync(
+    `${basePath}/index.yaml`,
+    YAML.stringify(index, {
       aliasDuplicateObjects: false,
       blockQuote: "literal",
     }),
@@ -207,4 +359,9 @@ function saveResults(testId: string, results: any) {
 
 app.listen("8080", () => {
   console.log(`app listening on port 8080`);
+});
+
+process.on("beforeExit", (code) => {
+  console.log("Process beforeExit event with code: ", code);
+  saveIndex();
 });

@@ -3,225 +3,599 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>UpstreamTest - Seamless Integration Testing</title>
-
+        <title>Upstream - Modern Test Orchestration</title>
         <!-- Load Tailwind CSS -->
         <script src="https://cdn.tailwindcss.com"></script>
-
-        <!-- Load Google Font (Inter) -->
-        <link
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap"
-            rel="stylesheet"
-        />
-
+        <!-- Use Inter font -->
         <style>
-            /* Set the default font for the page */
+            @import url("https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap");
             body {
                 font-family: "Inter", sans-serif;
             }
-
-            /* Custom "glow" effect for the hero text */
-            .hero-glow {
-                text-shadow:
-                    0 0 20px rgba(168, 85, 247, 0.5),
-                    0 0 8px rgba(139, 92, 246, 0.3);
+            /* Custom scrollbar for dark theme */
+            ::-webkit-scrollbar {
+                width: 8px;
             }
-
-            /* Basic prose styles for text sections for better readability */
-            .prose {
-                color: #d1d5db; /* gray-300 */
+            ::-webkit-scrollbar-track {
+                background: #0f172a; /* slate-950 */
             }
-            .prose h2 {
-                color: #ffffff; /* white */
+            ::-webkit-scrollbar-thumb {
+                background: #1e293b; /* slate-800 */
+                border-radius: 4px;
             }
-            .prose p {
-                font-size: 1.125rem; /* text-lg */
-                line-height: 1.75rem;
-                color: #94a3b8; /* slate-400 */
-            }
-            .prose code {
-                color: #c084fc; /* purple-400 */
-                background-color: #334155; /* slate-700 */
-                padding: 0.25rem 0.5rem;
-                border-radius: 0.375rem; /* rounded-md */
-                font-weight: 600;
+            ::-webkit-scrollbar-thumb:hover {
+                background: #0d9488; /* teal-600 */
             }
         </style>
+        <script>
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        colors: {
+                            "primary-accent": "#2dd4bf", // teal-400
+                            "dark-bg": "#020617", // slate-950
+                            "dark-card": "#111827", // gray-900
+                        },
+                    },
+                },
+            };
+        </script>
     </head>
-    <body class="bg-slate-900 text-gray-300 antialiased">
-        <!-- Main Container -->
-        <div class="container mx-auto px-4 py-16 md:py-24 max-w-5xl">
-            <!-- Hero Section -->
-            <header class="text-center mb-20 md:mb-32">
+    <body class="bg-dark-bg text-gray-100 min-h-screen">
+        <!-- Navigation -->
+        <nav
+            class="sticky top-0 z-50 bg-dark-bg/90 backdrop-blur-sm shadow-xl shadow-dark-bg/50"
+        >
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex-shrink-0">
+                        <span
+                            class="text-3xl font-extrabold tracking-tight text-primary-accent"
+                        >
+                            Upstream
+                        </span>
+                        <span class="text-xs text-gray-400 ml-2">BETA</span>
+                    </div>
+                    <div class="hidden md:block">
+                        <div class="ml-10 flex items-baseline space-x-4">
+                            <a
+                                href="#features"
+                                class="text-gray-300 hover:text-primary-accent transition duration-150"
+                                >Features</a
+                            >
+                            <a
+                                href="#usage"
+                                class="text-gray-300 hover:text-primary-accent transition duration-150"
+                                >CLI Usage</a
+                            >
+                            <a
+                                href="#integration"
+                                class="text-gray-300 hover:text-primary-accent transition duration-150"
+                                >Integration</a
+                            >
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Hero Section -->
+        <header class="relative overflow-hidden pt-16 pb-24 lg:pt-24 lg:pb-32">
+            <div
+                class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center"
+            >
+                <!-- Neon Glow Effect (Optional - purely aesthetic) -->
+                <div
+                    class="absolute inset-x-0 top-0 h-96 w-96 mx-auto bg-primary-accent/10 blur-[150px] rounded-full"
+                ></div>
+
                 <h1
-                    class="text-5xl md:text-7xl font-extrabold text-white mb-4 hero-glow"
+                    class="text-6xl sm:text-7xl lg:text-8xl font-extrabold leading-tight tracking-tight mt-10"
                 >
                     <span
-                        class="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent"
-                        >Upstream</span
-                    >Test
+                        class="block bg-clip-text text-transparent bg-gradient-to-r from-primary-accent to-purple-400"
+                    >
+                        Free and Open TDD.
+                    </span>
+                    <span class="block text-gray-200 mt-4"
+                        >Test Everything.</span
+                    >
                 </h1>
-                <p class="text-xl md:text-2xl text-slate-400 max-w-2xl mx-auto">
-                    Stop guessing. Start knowing. Validate your upstream APIs,
-                    microservices, and data contracts with confidence.
+                <p class="mt-6 text-xl text-gray-400 max-w-3xl mx-auto">
+                    Upstream provides seamless, real-time coordination for your
+                    entire test matrix. Launch, monitor, and consolidate results
+                    from any environment with a single command.
                 </p>
-            </header>
 
-            <!-- Main Content - Sections -->
-            <main class="space-y-20 md:space-y-28">
-                <!-- Section 1: Health Checks -->
-                <section
-                    class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center"
-                >
-                    <!-- Text Content -->
-                    <div class="prose max-w-none">
-                        <h2 class="text-3xl font-bold mb-3">
-                            1. Create a test
-                        </h2>
-                        <p>
-                            Create a test in Upstream Test, and keep the
-                            generated id for future use.
-                        </p>
-                        <p>
-                            Define what "healthy" means—from a simple
-                            <code>200 OK</code> to a specific JSON body—and let
-                            <code>UpstreamTest</code> handle the rest.
-                        </p>
-                    </div>
-                    <!-- Code Snippet -->
-                    <div
-                        class="bg-slate-800/70 rounded-xl p-5 md:p-6 shadow-2xl shadow-black/30 border border-slate-700 backdrop-blur-sm"
+                <div class="mt-10">
+                    <button
+                        id="openModalBtn"
+                        class="px-8 py-4 text-xl font-semibold rounded-xl text-dark-bg bg-primary-accent hover:bg-teal-300 transition duration-300 shadow-xl shadow-primary-accent/30 transform hover:scale-[1.02] active:scale-[0.98]"
                     >
-                        <pre
-                            class="font-mono text-sm text-white overflow-x-auto"
-                        ><code class="language-shell">
-curl -X POST https://upstr.dev/tests \
-  -H "Content-Type: application/yaml" \
-  --data-binary @- << EOF
+                        Create New Test Suite
+                    </button>
+                </div>
+            </div>
+        </header>
 
-tests:
-  - name: test host name
-    path: /get
-    verb: get
-    assertions:
-      - $.headers.Host===httpbin.org
-EOF
-                        </code></pre>
-                    </div>
-                </section>
+        <!-- Main Content Sections -->
+        <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 space-y-24">
+            <!-- Features Section -->
+            <section id="features" class="grid md:grid-cols-3 gap-8">
+                <div class="md:col-span-3 text-center mb-8">
+                    <h2 class="text-4xl font-bold text-gray-200 mb-2">
+                        Core Features
+                    </h2>
+                    <p class="text-lg text-gray-400">
+                        Built for speed, reliability, and developer experience.
+                    </p>
+                </div>
 
-                <!-- Section 2: Contract Validation -->
-                <section
-                    class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center"
+                <!-- Card 1 -->
+                <div
+                    class="p-6 bg-dark-card rounded-xl border border-gray-800 hover:border-primary-accent/50 transition duration-300 shadow-lg"
                 >
-                    <!-- Text Content -->
-                    <div class="prose max-w-none md:order-last">
-                        <!-- `md:order-last` flips layout -->
-                        <h2 class="text-3xl font-bold mb-3">
-                            Validate API Contracts
-                        </h2>
-                        <p>
-                            Ensure upstream APIs haven't introduced breaking
-                            changes. Define a JSON schema for the expected
-                            response and <code>UpstreamTest</code> will alert
-                            you if a field is missing, a data type changes, or a
-                            new field is added.
-                        </p>
-                        <p>
-                            Catch errors before they break your application in
-                            production.
-                        </p>
+                    <div class="text-primary-accent mb-3">
+                        <!-- Icon for Orchestration -->
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-8 w-8"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                        >
+                            <path
+                                d="M10 20H14V16H10V20ZM3 14H21V10H3V14ZM10 4V8H14V4H10Z"
+                            ></path>
+                        </svg>
                     </div>
-                    <!-- Code Snippet -->
-                    <div
-                        class="bg-slate-800/70 rounded-xl p-5 md:p-6 shadow-2xl shadow-black/30 border border-slate-700 backdrop-blur-sm md:order-first"
-                    >
-                        <!-- `md:order-first` flips layout -->
-                        <pre
-                            class="font-mono text-sm text-white overflow-x-auto"
-                        ><code class="language-yaml"><span class="text-gray-500"># test/user-contract.yml</span>
-<span class="text-purple-400">service</span>: <span class="text-green-300">"user-service"</span>
-<span class="text-purple-400">endpoint</span>: <span class="text-green-300">"/users/123"</span>
-<span class="text-purple-400">
-schema</span>:
-  <span class="text-purple-400">type</span>: <span class="text-green-300">"object"</span>
-  <span class="text-purple-400">properties</span>:
-    <span class="text-purple-400">id</span>: { <span class="text-purple-400">type</span>: <span class="text-green-300">"number"</span> }
-    <span class="text-purple-400">email</span>: { <span class="text-purple-400">type</span>: <span class="text-green-300">"string"</span>, <span class="text-purple-400">format</span>: <span class="text-green-300">"email"</span> }
-    <span class="text-purple-400">createdAt</span>: { <span class="text-purple-400">type</span>: <span class="text-green-300">"string"</span>, <span class="text-purple-400">format</span>: <span class="text-green-300">"date-time"</span> }
-  <span class="text-purple-400">required</span>: [<span class="text-green-300">"id"</span>, <span class="text-green-300">"email"</span>]
+                    <h3 class="text-xl font-semibold text-gray-50 mb-3">
+                        Parallel Execution
+                    </h3>
+                    <p class="text-gray-400">
+                        Distribute test loads across multiple agents instantly.
+                        Cut down your CI/CD time from hours to minutes with zero
+                        configuration.
+                    </p>
+                </div>
 
-<span class="text-gray-500">> upstream test --contract test/user-contract.yml</span>
-<span class="text-red-400">✖</span> <span class="text-white">user-service... </span><span class="text-red-400">FAIL</span>
-  <span class="text-gray-400">- Response failed schema validation:</span>
-  <span class="text-gray-400">  - Missing required property: 'email'</span></code></pre>
-                    </div>
-                </section>
-
-                <!-- Section 3: CI/CD Integration -->
-                <section
-                    class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center"
+                <!-- Card 2 -->
+                <div
+                    class="p-6 bg-dark-card rounded-xl border border-gray-800 hover:border-primary-accent/50 transition duration-300 shadow-lg"
                 >
-                    <!-- Text Content -->
-                    <div class="prose max-w-none">
-                        <h2 class="text-3xl font-bold mb-3">
-                            Integrate with your CI/CD
-                        </h2>
-                        <p>
-                            Block bad deployments before they happen. Run
-                            <code>upstream test</code> as a required step in
-                            your GitHub Actions, GitLab CI, or Jenkins pipeline.
-                        </p>
-                        <p>
-                            The CLI is designed to exit with a non-zero code on
-                            failure, halting any pipeline and preventing
-                            integration issues from shipping.
+                    <div class="text-purple-400 mb-3">
+                        <!-- Icon for Reporting -->
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-8 w-8"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                        >
+                            <path
+                                d="M21 15.01L17 15V3H7V15H3L3.01 15.01L12 21L21 15.01ZM12 4H19V14H5V4H12Z"
+                            ></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-50 mb-3">
+                        Unified Reporting
+                    </h3>
+                    <p class="text-gray-400">
+                        All results, regardless of framework (Jest, Cypress,
+                        JUnit), are consolidated into a single, navigable
+                        dashboard.
+                    </p>
+                </div>
+
+                <!-- Card 3 -->
+                <div
+                    class="p-6 bg-dark-card rounded-xl border border-gray-800 hover:border-primary-accent/50 transition duration-300 shadow-lg"
+                >
+                    <div class="text-pink-400 mb-3">
+                        <!-- Icon for Resilience -->
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-8 w-8"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                        >
+                            <path
+                                d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20ZM12 6.5C8.96 6.5 6.5 8.96 6.5 12C6.5 15.04 8.96 17.5 12 17.5C15.04 17.5 17.5 15.04 17.5 12C17.5 8.96 15.04 6.5 12 6.5ZM12 15.5C10.07 15.5 8.5 13.93 8.5 12C8.5 10.07 10.07 8.5 12 8.5C13.93 8.5 15.5 10.07 15.5 12C15.5 13.93 13.93 15.5 12 15.5Z"
+                            ></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-50 mb-3">
+                        Failure Resilience
+                    </h3>
+                    <p class="text-gray-400">
+                        Intelligent retry mechanisms and automatic environment
+                        cleanup ensure transient failures never halt your entire
+                        release pipeline.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Usage Section -->
+            <section id="usage" class="space-y-12">
+                <h2 class="text-4xl font-bold text-gray-200 text-center">
+                    Quick Start: CLI Usage
+                </h2>
+
+                <!-- Step 1 -->
+                <div
+                    class="flex flex-col lg:flex-row bg-dark-card p-6 rounded-xl border border-gray-800 shadow-xl"
+                >
+                    <div class="lg:w-1/3 lg:pr-8 mb-4 lg:mb-0">
+                        <h3
+                            class="text-2xl font-semibold text-primary-accent mb-2"
+                        >
+                            1. Install Upstream CLI
+                        </h3>
+                        <p class="text-gray-400">
+                            Get the core command-line tool. Requires Node.js or
+                            Python runtime (auto-detects).
                         </p>
                     </div>
-                    <!-- Code Snippet -->
-                    <div
-                        class="bg-slate-800/70 rounded-xl p-5 md:p-6 shadow-2xl shadow-black/30 border border-slate-700 backdrop-blur-sm"
-                    >
+                    <div class="lg:w-2/3">
                         <pre
-                            class="font-mono text-sm text-white overflow-x-auto"
-                        ><code class="language-yaml"><span class="text-gray-500"># .github/workflows/ci.yml</span>
-<span class="text-purple-400">name</span>: <span class="text-green-300">"CI Pipeline"</span>
-<span class="text-purple-400">on</span>: <span class="text-green-300">[push]</span>
-
-<span class="text-purple-400">jobs</span>:
-  <span class="text-purple-400">integration-test</span>:
-    <span class="text-purple-400">runs-on</span>: <span class="text-green-300">"ubuntu-latest"</span>
-    <span class="text-purple-400">steps</span>:
-      - <span class="text-purple-400">name</span>: <span class="text-green-300">"Checkout code"</span>
-        <span class="text-purple-400">uses</span>: <span class="text-green-300">"actions/checkout@v4"</span>
-
-      - <span class="text-purple-400">name</span>: <span class="text-green-300">"Install UpstreamTest"</span>
-        <span class="text-purple-400">run</span>: <span class="text-blue-400">npm install -g upstream-test</span>
-
-      - <span class="text-purple-400">name</span>: <span class="text-green-300">"Run Upstream Tests"</span>
-        <span class="text-purple-400">run</span>: |
-          <span class="text-gray-400"># Run all tests in the ./upstream-tests/ folder</span>
-          <span class="text-blue-400">upstream test ./upstream-tests/</span>
-</code></pre>
+                            class="bg-gray-900 p-4 rounded-lg text-sm overflow-x-auto border border-gray-700 shadow-inner"
+                        >
+                        <code class="text-green-300"># Install via npm</code>
+                        <code class="block text-white">$ npm install -g @upstreamhq/cli</code>
+                        <code class="text-green-300"># Or via pip (for Python environments)</code>
+                        <code class="block text-white">$ pip install upstream-client</code>
+                    </pre>
                     </div>
-                </section>
-            </main>
+                </div>
 
-            <!-- Footer -->
-            <footer
-                class="text-center text-slate-500 border-t border-slate-700 mt-24 md:mt-32 pt-10"
+                <!-- Step 2 -->
+                <div
+                    class="flex flex-col lg:flex-row bg-dark-card p-6 rounded-xl border border-gray-800 shadow-xl"
+                >
+                    <div class="lg:w-1/3 lg:pr-8 mb-4 lg:mb-0">
+                        <h3
+                            class="text-2xl font-semibold text-primary-accent mb-2"
+                        >
+                            2. Initialize Project
+                        </h3>
+                        <p class="text-gray-400">
+                            Initialize Upstream in your repository root to
+                            generate the `upstream.config.yml` file.
+                        </p>
+                    </div>
+                    <div class="lg:w-2/3">
+                        <pre
+                            class="bg-gray-900 p-4 rounded-lg text-sm overflow-x-auto border border-gray-700 shadow-inner"
+                        >
+                        <code class="block text-white">$ upstream init</code>
+                        <code class="text-yellow-300"># > Creating upstream.config.yml...</code>
+                        <code class="text-green-300"># > Configuration file successfully created.</code>
+                    </pre>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div
+                    class="flex flex-col lg:flex-row bg-dark-card p-6 rounded-xl border border-gray-800 shadow-xl"
+                >
+                    <div class="lg:w-1/3 lg:pr-8 mb-4 lg:mb-0">
+                        <h3
+                            class="text-2xl font-semibold text-primary-accent mb-2"
+                        >
+                            3. Run & Publish Results
+                        </h3>
+                        <p class="text-gray-400">
+                            Execute your local tests and automatically publish
+                            the JUnit XML results to the active test suite.
+                        </p>
+                    </div>
+                    <div class="lg:w-2/3">
+                        <pre
+                            class="bg-gray-900 p-4 rounded-lg text-sm overflow-x-auto border border-gray-700 shadow-inner"
+                        >
+                        <code class="text-green-300"># Replace 'your-test-script' with your actual test command</code>
+                        <code class="block text-white">$ npm run your-test-script && upstream publish ./results/junit.xml --suite-id SUITE-UUID</code>
+                        <code class="text-yellow-300"># Use environment variables in CI/CD pipelines</code>
+                        <code class="block text-white">$ upstream publish --repo-root .</code>
+                    </pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Integration Section -->
+            <section id="integration" class="space-y-8">
+                <h2 class="text-4xl font-bold text-gray-200 text-center">
+                    Seamless Integration
+                </h2>
+                <p class="text-lg text-gray-400 text-center max-w-2xl mx-auto">
+                    Upstream works with all major CI/CD providers and testing
+                    frameworks out-of-the-box.
+                </p>
+
+                <div class="grid md:grid-cols-2 gap-8 pt-6">
+                    <!-- CI/CD Card -->
+                    <div
+                        class="bg-dark-card p-6 rounded-xl border-t-4 border-l-4 border-purple-500 shadow-xl"
+                    >
+                        <h3 class="text-2xl font-semibold text-purple-400 mb-4">
+                            CI/CD Setup (GitLab Example)
+                        </h3>
+                        <p class="text-gray-400 mb-4">
+                            Integrate publishing into your CI pipeline using the
+                            dedicated environment variables.
+                        </p>
+                        <pre
+                            class="bg-gray-900 p-4 rounded-lg text-sm overflow-x-auto border border-gray-700 shadow-inner"
+                        >
+                        <code class="text-white block">run_tests:</code>
+                        <code class="text-white block">  stage: test</code>
+                        <code class="text-white block">  script:</code>
+                        <code class="text-white block">    - npm install @upstreamhq/cli</code>
+                        <code class="text-white block">    - npm test -- --reporter=junit</code>
+                        <code class="text-white block">    - upstream publish ./junit.xml</code>
+                        <code class="text-gray-500 block">  # Assumes UPSTREAM_API_KEY is configured as a variable</code>
+                    </pre>
+                    </div>
+
+                    <!-- Framework Card -->
+                    <div
+                        class="bg-dark-card p-6 rounded-xl border-t-4 border-l-4 border-teal-500 shadow-xl"
+                    >
+                        <h3 class="text-2xl font-semibold text-teal-400 mb-4">
+                            Testing Frameworks (Cypress)
+                        </h3>
+                        <p class="text-gray-400 mb-4">
+                            No special configuration needed. Just output
+                            standard JUnit XML format and publish.
+                        </p>
+                        <pre
+                            class="bg-gray-900 p-4 rounded-lg text-sm overflow-x-auto border border-gray-700 shadow-inner"
+                        >
+                        <code class="text-white block"># cypress.config.js snippet</code>
+                        <code class="text-white block">reporter: 'junit',</code>
+                        <code class="text-white block">reporterOptions: {</code>
+                        <code class="text-white block">  mochaFile: 'cypress/results/output.xml',</code>
+                        <code class="text-white block">},</code>
+                        <code class="text-gray-500 block">/* ... then in your script: */</code>
+                        <code class="text-white block">upstream publish cypress/results/output.xml</code>
+                    </pre>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-900 mt-20">
+            <div
+                class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center text-gray-400"
             >
-                <p class="font-semibold">
-                    &copy; <span id="footer-year"></span> UpstreamTest
-                </p>
-                <p class="text-sm">Stop guessing. Start knowing.</p>
-            </footer>
+                <p>&copy; 2025 Upstream HQ. All rights reserved.</p>
+            </div>
+        </footer>
+
+        <!-- Modal/Popup for Test Suite Creation -->
+        <div
+            id="suiteModal"
+            class="fixed inset-0 bg-black bg-opacity-80 hidden z-50 transition-opacity duration-300"
+            aria-modal="true"
+        >
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div
+                    class="bg-gray-800 rounded-xl shadow-2xl p-8 w-full max-w-lg transform transition-all duration-300 scale-100 border-t-4 border-primary-accent/50"
+                >
+                    <h3
+                        class="text-3xl font-bold text-gray-50 mb-4 flex items-center"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-8 w-8 text-primary-accent mr-3"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                        >
+                            <path
+                                d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20ZM11 15H13V17H11V15ZM11 7H13V13H11V7Z"
+                            ></path>
+                        </svg>
+                        Suite Created Successfully
+                    </h3>
+                    <p class="text-gray-300 mb-6">
+                        Your new dedicated test suite is ready for results
+                        ingestion.
+                    </p>
+
+                    <!-- UUID Display -->
+                    <div class="mb-4">
+                        <label
+                            class="block text-sm font-medium text-gray-400 mb-1"
+                            >Unique Suite ID (UUID)</label
+                        >
+                        <div
+                            class="flex items-center bg-gray-900 rounded-lg border border-gray-700 p-3"
+                        >
+                            <span
+                                id="suiteUuidDisplay"
+                                class="flex-grow font-mono text-lg text-primary-accent select-all overflow-x-auto whitespace-nowrap"
+                            ></span>
+                            <button
+                                id="copyUuidBtn"
+                                class="ml-3 p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-700 transition duration-150"
+                            >
+                                <!-- Copy Icon -->
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-5 w-5"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                >
+                                    <path
+                                        d="M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1ZM19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5ZM19 21H8V7H19V21Z"
+                                    ></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <p
+                            id="uuidCopyMessage"
+                            class="text-xs text-green-400 mt-1 hidden"
+                        >
+                            Copied!
+                        </p>
+                    </div>
+
+                    <!-- Link Display -->
+                    <div class="mb-6">
+                        <label
+                            class="block text-sm font-medium text-gray-400 mb-1"
+                            >Suite Dashboard Link</label
+                        >
+                        <div
+                            class="flex items-center bg-gray-900 rounded-lg border border-gray-700 p-3"
+                        >
+                            <a
+                                id="suiteLinkDisplay"
+                                href="#"
+                                target="_blank"
+                                class="flex-grow font-mono text-lg text-purple-400 hover:underline overflow-x-auto whitespace-nowrap"
+                            ></a>
+                            <button
+                                id="copyLinkBtn"
+                                class="ml-3 p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-700 transition duration-150"
+                            >
+                                <!-- Link Icon -->
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-5 w-5"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                >
+                                    <path
+                                        d="M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1ZM19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5ZM19 21H8V7H19V21Z"
+                                    ></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <p
+                            id="linkCopyMessage"
+                            class="text-xs text-green-400 mt-1 hidden"
+                        >
+                            Copied!
+                        </p>
+                    </div>
+
+                    <button
+                        id="closeModalBtn"
+                        class="w-full mt-4 py-3 bg-gray-700 text-gray-100 rounded-xl hover:bg-gray-600 transition duration-300"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
         </div>
 
         <script>
-            // Set the current year in the footer
-            document.getElementById("footer-year").textContent =
-                new Date().getFullYear();
+            document.addEventListener("DOMContentLoaded", () => {
+                const openModalBtn = document.getElementById("openModalBtn");
+                const closeModalBtn = document.getElementById("closeModalBtn");
+                const suiteModal = document.getElementById("suiteModal");
+                const suiteUuidDisplay =
+                    document.getElementById("suiteUuidDisplay");
+                const suiteLinkDisplay =
+                    document.getElementById("suiteLinkDisplay");
+                const copyUuidBtn = document.getElementById("copyUuidBtn");
+                const copyLinkBtn = document.getElementById("copyLinkBtn");
+                const uuidCopyMessage =
+                    document.getElementById("uuidCopyMessage");
+                const linkCopyMessage =
+                    document.getElementById("linkCopyMessage");
+
+                /**
+                 * Generates a UUID V4 (or uses crypto.randomUUID if available)
+                 * @returns {string} The generated UUID.
+                 */
+                async function generateUUID() {
+                    let uuid = "";
+                    let response = await fetch("/tests", {
+                        method: "POST",
+                    });
+                    if (response.status == 201) {
+                        let responseJson = await response.json();
+                        uuid = responseJson.id;
+                    }
+
+                    return uuid;
+                }
+
+                /**
+                 * Copies text to the clipboard using document.execCommand (reliable in iframes).
+                 * @param {string} text The text to copy.
+                 * @param {HTMLElement} messageElement The success message element to show.
+                 */
+                function copyToClipboard(text, messageElement) {
+                    const tempInput = document.createElement("textarea");
+                    tempInput.value = text;
+                    tempInput.style.position = "absolute";
+                    tempInput.style.left = "-9999px";
+                    document.body.appendChild(tempInput);
+                    tempInput.select();
+                    try {
+                        document.execCommand("copy");
+                        messageElement.classList.remove("hidden");
+                        setTimeout(() => {
+                            messageElement.classList.add("hidden");
+                        }, 1500);
+                    } catch (err) {
+                        console.error("Could not copy text: ", err);
+                    }
+                    document.body.removeChild(tempInput);
+                }
+
+                // --- Event Listeners ---
+
+                openModalBtn.addEventListener("click", async () => {
+                    const newUuid = await generateUUID();
+                    const dashboardLink = `${window.location.origin}/dash?id=${newUuid}`;
+
+                    suiteUuidDisplay.textContent = newUuid;
+                    suiteLinkDisplay.textContent = dashboardLink;
+                    suiteLinkDisplay.href = dashboardLink;
+
+                    // Reset copy messages
+                    uuidCopyMessage.classList.add("hidden");
+                    linkCopyMessage.classList.add("hidden");
+
+                    suiteModal.classList.remove("hidden");
+                });
+
+                closeModalBtn.addEventListener("click", () => {
+                    suiteModal.classList.add("hidden");
+                });
+
+                // Close modal on outside click
+                suiteModal.addEventListener("click", (e) => {
+                    if (e.target === suiteModal) {
+                        suiteModal.classList.add("hidden");
+                    }
+                });
+
+                // Close modal on ESC key
+                document.addEventListener("keydown", (e) => {
+                    if (
+                        e.key === "Escape" &&
+                        !suiteModal.classList.contains("hidden")
+                    ) {
+                        suiteModal.classList.add("hidden");
+                    }
+                });
+
+                // Copy UUID button handler
+                copyUuidBtn.addEventListener("click", () => {
+                    const uuidText = suiteUuidDisplay.textContent;
+                    copyToClipboard(uuidText, uuidCopyMessage);
+                });
+
+                // Copy Link button handler
+                copyLinkBtn.addEventListener("click", () => {
+                    const linkText = suiteLinkDisplay.textContent;
+                    copyToClipboard(linkText, linkCopyMessage);
+                });
+            });
         </script>
     </body>
 </html>

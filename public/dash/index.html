@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Upstream Dashboard | Automated Test Results</title>
+        <!-- Load Tailwind CSS -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        <!-- Load Lucide Icons -->
+        <script src="https://unpkg.com/lucide@latest"></script>
+        <style>
+            /* Custom scrollbar for dark theme */
+            ::-webkit-scrollbar {
+                width: 8px;
+            }
+            ::-webkit-scrollbar-track {
+                background: #1f2937; /* Gray-800 */
+            }
+            ::-webkit-scrollbar-thumb {
+                background: #4b5563; /* Gray-600 */
+                border-radius: 4px;
+            }
+            ::-webkit-scrollbar-thumb:hover {
+                background: #6b7280; /* Gray-500 */
+            }
+
+            /* Ensure smooth transitions on hover effects */
+            .card-transition {
+                transition:
+                    transform 0.3s ease,
+                    box-shadow 0.3s ease;
+            }
+            .card-transition:hover {
+                transform: translateY(-4px);
+                box-shadow:
+                    0 10px 15px -3px rgba(0, 0, 0, 0.2),
+                    0 4px 6px -2px rgba(0, 0, 0, 0.1);
+            }
+        </style>
+        <script>
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        colors: {
+                            "primary-accent": "#2dd4bf",
+                            "primary-dark": "#0f172a", // Slate-900 for main background
+                            "secondary-dark": "#1e293b", // Slate-800 for cards/sections
+                            "accent-green": "#10b981", // Emerald-500 for success
+                            "accent-red": "#ef4444", // Red-500 for failure
+                            "accent-yellow": "#facc15", // Yellow-400 for neutral/info
+                        },
+                        fontFamily: {
+                            sans: ["Inter", "sans-serif"],
+                        },
+                    },
+                },
+            };
+        </script>
+    </head>
+    <body
+        class="bg-primary-dark text-gray-100 min-h-screen font-sans p-4 md:p-8"
+    >
+        <header class="mb-10 border-b border-gray-700 pb-4">
+            <h1 class="text-4xl font-extrabold tracking-tight">
+                <span class="text-primary-accent">Upstream</span>
+                <span class="text-accent-green">|</span> Dashboard
+            </h1>
+            <p class="text-gray-400">
+                Real-time status view of all automated test suites.
+            </p>
+        </header>
+
+        <main class="container mx-auto">
+            <!-- Summary Statistics Section -->
+            <section
+                id="summary-section"
+                class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"
+            >
+                <!-- Summary tiles will be injected here by JavaScript -->
+            </section>
+
+            <!-- Individual Test Results Section -->
+            <section class="mb-8">
+                <h2
+                    class="text-2xl font-semibold text-white mb-6 border-l-4 border-accent-yellow pl-3"
+                >
+                    Individual Test Suite Results
+                </h2>
+                <div id="results-container" class="space-y-6">
+                    <!-- Test cards will be injected here by JavaScript -->
+                </div>
+            </section>
+        </main>
+
+        <footer
+            class="mt-12 pt-6 border-t border-gray-800 text-center text-gray-500 text-sm"
+        >
+            Upstream Dashboard &copy; 2024. Data refreshed:
+            <span id="refresh-time"></span>
+        </footer>
+
+        <script>
+            // Set the core data structure
+            const urlParams = new URLSearchParams(window.location.search);
+            let testId = urlParams.get("id");
+            var TEST_DATA = {
+                results: {},
+            };
+
+            /**
+             * Converts a Unix timestamp (seconds) to a human-readable date and time string.
+             * @param {number} timestamp - The Unix timestamp in seconds.
+             * @returns {string} - Formatted date string.
+             */
+            function formatTimestamp(timestamp) {
+                if (!timestamp) return "N/A";
+                const date = new Date(timestamp * 1000);
+                return date.toLocaleString("en-US", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                    hour12: false,
+                });
+            }
+
+            /**
+             * Renders the summary statistics tiles at the top of the dashboard.
+             */
+            function renderSummary() {
+                const container = document.getElementById("summary-section");
+                let totalTests = 0;
+                let totalPassed = 0;
+                let totalFailed = 0;
+
+                // Calculate overall totals
+                Object.values(TEST_DATA.results).forEach((result) => {
+                    totalTests += result.tests;
+                    totalPassed += result.passed;
+                    totalFailed += result.failed;
+                });
+
+                // Calculate pass rate
+                const passRate =
+                    totalTests > 0
+                        ? ((totalPassed / totalTests) * 100).toFixed(1)
+                        : 0;
+
+                // Define summary tiles data
+                const summaryData = [
+                    {
+                        title: "Total Tests Run",
+                        value: totalTests,
+                        icon: "package",
+                        color: "text-accent-yellow",
+                        bg: "bg-secondary-dark",
+                    },
+                    {
+                        title: "Total Passed",
+                        value: totalPassed,
+                        icon: "check-circle",
+                        color: "text-accent-green",
+                        bg: "bg-secondary-dark",
+                    },
+                    {
+                        title: "Total Failed",
+                        value: totalFailed,
+                        icon: "x-octagon",
+                        color: "text-accent-red",
+                        bg: "bg-secondary-dark",
+                    },
+                    {
+                        title: "Overall Pass Rate",
+                        value: `${passRate}%`,
+                        icon: "activity",
+                        color:
+                            totalFailed > 0
+                                ? "text-accent-yellow"
+                                : "text-accent-green",
+                        bg: "bg-secondary-dark",
+                    },
+                ];
+
+                // Render tiles
+                summaryData.forEach((item) => {
+                    const html = `
+                    <div class="${item.bg} p-6 rounded-xl shadow-lg flex items-center justify-between card-transition border border-gray-700">
+                        <div>
+                            <p class="text-sm font-medium text-gray-400">${item.title}</p>
+                            <p class="text-4xl font-bold ${item.color} mt-1">${item.value}</p>
+                        </div>
+                        <i data-lucide="${item.icon}" class="${item.color} w-8 h-8 opacity-75"></i>
+                    </div>
+                `;
+                    container.insertAdjacentHTML("beforeend", html);
+                });
+            }
+
+            /**
+             * Renders the individual test result cards.
+             */
+            function renderResults() {
+                const container = document.getElementById("results-container");
+                container.innerHTML = ""; // Clear previous results
+
+                Object.entries(TEST_DATA.results).forEach(
+                    ([testName, data]) => {
+                        const isFailed = data.failed > 0;
+                        const statusColor = isFailed
+                            ? "border-accent-red"
+                            : "border-accent-green";
+                        const statusText = isFailed ? "Failure" : "Success";
+                        const statusBg = isFailed
+                            ? "bg-accent-red/20 text-accent-red"
+                            : "bg-accent-green/20 text-accent-green";
+                        const iconName = isFailed
+                            ? "alert-triangle"
+                            : "check-circle";
+
+                        const startTime = formatTimestamp(data.start);
+                        const stopTime = formatTimestamp(data.stop);
+                        const duration = data.stop - data.start;
+
+                        const html = `
+                    <div class="bg-secondary-dark p-6 rounded-xl shadow-2xl card-transition border-l-8 ${statusColor} flex flex-col lg:flex-row justify-between items-start lg:items-center">
+                        <!-- Left: Status and Name -->
+                        <div class="flex-grow mb-4 lg:mb-0">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusBg} mb-2">
+                                <i data-lucide="${iconName}" class="w-4 h-4 mr-1"></i>
+                                ${statusText}
+                            </span>
+                            <h3 class="text-xl font-bold text-white mb-2">${testName}</h3>
+                            <div class="flex flex-wrap gap-4 text-sm text-gray-400">
+                                <p class="flex items-center"><i data-lucide="clock" class="w-4 h-4 mr-1"></i> ${duration}s</p>
+                                <p class="flex items-center"><i data-lucide="calendar" class="w-4 h-4 mr-1"></i> Start: ${startTime}</p>
+                                <p class="flex items-center"><i data-lucide="calendar-off" class="w-4 h-4 mr-1"></i> Stop: ${stopTime}</p>
+                            </div>
+                        </div>
+
+                        <!-- Center: Detailed Results -->
+                        <div class="flex space-x-6 lg:space-x-10 text-center border-t lg:border-t-0 lg:border-x border-gray-700 pt-4 lg:pt-0 lg:px-10">
+                            <div class="flex flex-col">
+                                <span class="text-3xl font-extrabold text-white">${data.tests}</span>
+                                <span class="text-xs text-gray-400 uppercase tracking-wider mt-1">Total Cases</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-3xl font-extrabold text-accent-green">${data.passed}</span>
+                                <span class="text-xs text-gray-400 uppercase tracking-wider mt-1">Passed</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-3xl font-extrabold ${isFailed ? "text-accent-red" : "text-gray-500"}">${data.failed}</span>
+                                <span class="text-xs text-gray-400 uppercase tracking-wider mt-1">Failed</span>
+                            </div>
+                        </div>
+
+                        <!-- Right: Action Button -->
+                        <div class="mt-4 lg:mt-0 lg:ml-8 w-full lg:w-auto">
+                            <a href="/test?id=${testId + "&caseId=" + testName}" class="w-full lg:w-auto inline-flex items-center justify-center bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 shadow-md">
+                                View Detailed Report
+                                <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                `;
+                        container.insertAdjacentHTML("beforeend", html);
+                    },
+                );
+            }
+
+            /**
+             * Initialization function to run on window load.
+             */
+            async function initializeDashboard() {
+                let response = await fetch(`/tests/${testId}/results`);
+                if (response.status == 200) {
+                    TEST_DATA = await response.json();
+                }
+                // 1. Render data
+                renderSummary();
+                renderResults();
+
+                // 2. Refresh Lucide icons after injection
+                if (typeof lucide !== "undefined" && lucide.createIcons) {
+                    lucide.createIcons();
+                }
+
+                // 3. Set refresh time
+                document.getElementById("refresh-time").textContent =
+                    formatTimestamp(Math.floor(Date.now() / 1000));
+            }
+
+            window.onload = initializeDashboard;
+        </script>
+    </body>
+</html>

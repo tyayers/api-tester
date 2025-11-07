@@ -90,12 +90,32 @@
                 }
             }
         </style>
+        <script>
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        colors: {
+                            "primary-accent": "#2dd4bf",
+                            "primary-dark": "#0f172a", // Slate-900 for main background
+                            "secondary-dark": "#1e293b", // Slate-800 for cards/sections
+                            "accent-green": "#10b981", // Emerald-500 for success
+                            "accent-red": "#ef4444", // Red-500 for failure
+                            "accent-yellow": "#facc15", // Yellow-400 for neutral/info
+                        },
+                        fontFamily: {
+                            sans: ["Inter", "sans-serif"],
+                        },
+                    },
+                },
+            };
+        </script>
     </head>
     <body class="p-4 md:p-8">
-        <div class="max-w-7xl mx-auto">
+        <div class="mx-auto">
             <header class="mb-8">
-                <h1 class="text-4xl font-extrabold text-white mb-2">
-                    Upstream Test Results
+                <h1 class="text-4xl font-extrabold tracking-tight">
+                    <span class="text-primary-accent">Upstream</span>
+                    <span class="text-accent-green">|</span> Dashboard
                 </h1>
                 <p class="text-gray-400">
                     Real-time status view of all automated test suites.
@@ -462,17 +482,20 @@
             function initialize() {
                 const urlParams = new URLSearchParams(window.location.search);
                 let testId = urlParams.get("id");
+                let caseId = urlParams.get("caseId");
 
-                fetch("/tests/" + testId + "/results")
+                fetch("/tests/" + testId + "/results/" + caseId)
                     .then((response) => {
                         if (response.status === 200) return response.json();
                     })
                     .then((responseJson) => {
-                        for (let key of Object.keys(responseJson.results)) {
-                            responseJson.results[key].reverse();
-                        }
-
-                        rawTestData = responseJson;
+                        responseJson.results.reverse();
+                        let tempResponseJson = {
+                            results: {},
+                        };
+                        tempResponseJson.results[responseJson.testCaseId] =
+                            responseJson.results;
+                        rawTestData = tempResponseJson;
                         renderTestList();
                     });
             }
