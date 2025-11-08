@@ -1,7 +1,8 @@
-import express from "express";
+import express, { response } from "express";
 import fs from "fs";
 import * as YAML from "yaml";
 import crypto from "crypto";
+import jp from "jsonpath";
 
 const app = express();
 
@@ -21,7 +22,6 @@ app.use(
 );
 
 const basePath = process.env.BASE_PATH ?? "./data";
-const index = loadIndex();
 const eventClients = {};
 
 app.get("/tests/:id", function (req, res) {
@@ -75,7 +75,19 @@ app.post("/tests", function (req, res) {
 
   let tests: any = req.body;
   if (tests && requestType == "application/yaml") tests = YAML.parse(tests);
-  else if (!tests) tests = {};
+  else if (!tests)
+    tests = {
+      name: "Mock Target Tests v1",
+      tests: [
+        {
+          name: "test response header",
+          url: "https://mocktarget.apigee.net",
+          path: "/json",
+          verb: "GET",
+          assertions: ["$.firstName==john", "$.city==San Jose"],
+        },
+      ],
+    };
   tests.id = uuid;
 
   // create directory
@@ -107,6 +119,37 @@ app.post("/tests", function (req, res) {
         2,
       ),
     );
+});
+
+app.post("/tests/:id/run", async (req, res) => {
+  let requestType = req.header("Content-Type") ?? "";
+  let responseType = req.header("Accept");
+  let tests: any = req.body;
+  if (tests && requestType == "application/yaml") tests = YAML.parse(tests);
+  if (tests) saveTests(tests, requestType);
+
+  if (!tests && fs.existsSync(`${basePath}/${req.params.id}/tests.yaml`)) {
+    let fileContents = fs.readFileSync(
+      `${basePath}/${req.params.id}/tests.yaml`,
+      "utf8",
+    );
+    tests = YAML.parse(fileContents);
+  }
+
+  if (tests) {
+    let results = await runTests(tests);
+    if (responseType == "application/yaml") {
+      res.setHeader("Content-Type", "application/yaml");
+      res.send(
+        YAML.stringify(results, {
+          aliasDuplicateObjects: false,
+          blockQuote: "literal",
+        }),
+      );
+    } else res.send(JSON.stringify(results, null, 2));
+  } else {
+    res.status(404).send("Not found.");
+  }
 });
 
 app.post("/tests/:id/results", function (req, res) {
@@ -200,6 +243,156 @@ app.get("/events", (req, res) => {
   });
 });
 
+async function runTests(tests: any): Promise<any> {
+  return new Promise(async (resolve, reject) => {
+    let results: any[] = [];
+    if (tests.tests) {
+      for (let testCaseObject of tests.tests) {
+        var testResults = {
+          reportFormat: "CTRF",
+          extra: {
+            testCase: testCaseObject.name,
+          },
+          results: {
+            tool: {
+              name: "upstr",
+            },
+            summary: {
+              tests: 0,
+              passed: 0,
+              failed: 0,
+              start: Date.now(),
+            },
+            tests: [],
+          },
+        };
+
+        if (testCaseObject.url) {
+          let response = await fetch(
+            testCaseObject.url + (testCaseObject.path ?? ""),
+            {
+              method: testCaseObject.verb ?? "GET",
+              body: testCaseObject.request,
+              headers: testCaseObject.headers,
+            },
+          );
+          let responseContent = await response.text();
+
+          checkAssertions(
+            testCaseObject,
+            testResults,
+            response,
+            responseContent,
+          );
+          results.push(testResults);
+          updateResults(tests.id, testResults);
+          updateTestCaseResults(tests.id, testCaseObject.name, testResults);
+        }
+      }
+    }
+
+    resolve(results);
+  });
+}
+
+function checkAssertions(
+  testCaseObject,
+  testResults,
+  context,
+  responseContent,
+) {
+  for (var i = 0; i < testCaseObject.assertions.length; i++) {
+    var assertion = testCaseObject.assertions[i];
+    if (assertion.includes("===")) {
+      // exact test
+      var pieces = assertion.split("===");
+      if (pieces.length === 2) {
+        var value = getValue(pieces[0], context, responseContent);
+        if (value.trim() === pieces[1].trim()) {
+          testResults.results.summary.tests++;
+          testResults.results.summary.passed++;
+          testResults.results.tests.push({
+            name: assertion,
+            status: "passed",
+            message: "Values matched: " + pieces[1] + "===" + value,
+            duration: 0,
+          });
+        } else {
+          console.log("Assertion " + assertion + " failed: " + value);
+          testResults.results.summary.tests++;
+          testResults.results.summary.failed++;
+          testResults.results.tests.push({
+            name: assertion,
+            status: "failed",
+            message: "Value didn't match: " + pieces[1] + "!==" + value,
+            duration: 0,
+          });
+        }
+      }
+    } else if (assertion.includes("==")) {
+      // rough test
+      var pieces = assertion.split("==");
+      if (pieces.length === 2) {
+        var value = getValue(pieces[0], context, responseContent);
+        if (value.trim().toLowerCase() == pieces[1].trim().toLowerCase()) {
+          testResults.results.summary.tests++;
+          testResults.results.summary.passed++;
+          testResults.results.tests.push({
+            name: assertion,
+            status: "passed",
+            message: "Values matched: " + pieces[1] + "==" + value,
+            duration: 0,
+          });
+        } else {
+          console.log("Assertion " + assertion + " failed: " + value);
+          testResults.results.summary.tests++;
+          testResults.results.summary.failed++;
+          testResults.results.tests.push({
+            name: assertion,
+            status: "failed",
+            message: "Value didn't match: " + pieces[1] + "!=" + value,
+            duration: 0,
+          });
+        }
+      }
+    } else if (assertion.includes(":")) {
+      // contains
+      var pieces = assertion.split(":");
+      if (pieces.length === 2) {
+        var value = getValue(pieces[0], context, responseContent);
+        if (value.trim().includes(pieces[1].trim())) {
+          testResults.results.summary.tests++;
+          testResults.results.summary.passed++;
+          testResults.results.tests.push({
+            name: assertion,
+            status: "passed",
+            message: "Values matched: " + pieces[1] + ":" + value,
+            duration: 0,
+          });
+        } else {
+          console.log("Assertion " + assertion + " failed: " + value);
+          testResults.results.summary.tests++;
+          testResults.results.summary.failed++;
+          testResults.results.tests.push({
+            name: assertion,
+            status: "failed",
+            message: "Value didn't match: " + pieces[1] + "!:" + value,
+            duration: 0,
+          });
+        }
+      }
+    }
+  }
+}
+
+function getValue(name: string, context: any, responseContent: any): string {
+  let result = "";
+  if (name.startsWith("$")) {
+    result = jp.query(JSON.parse(responseContent), name);
+  }
+  return result.toString();
+}
+
 function sendTestsUpdateEvent(eventId: string, data: any) {
   if (eventClients[eventId]) {
     for (let res of eventClients[eventId]) {
@@ -292,13 +485,6 @@ function updateResults(testId: string, testCaseResults: any): boolean {
   results.updated = Date.now();
   sendTestsUpdateEvent(testId, results);
 
-  if (index.tests[testId]) index.tests[testId].updated = results.updated;
-  else
-    index.tests[testId] = {
-      testCases: {},
-      updated: results.updated,
-    };
-
   fs.writeFileSync(
     `${basePath}/${testId}/results.yaml`,
     YAML.stringify(results, {
@@ -330,9 +516,6 @@ function updateTestCaseResults(
   }
 
   results.updated = Date.now();
-  index.tests[testId].testCases[testCaseId] = {
-    updated: results.updated,
-  };
 
   if (results && results.results && testCaseResults) {
     results.results.push(testCaseResults);
@@ -355,44 +538,10 @@ function updateTestCaseResults(
   return result;
 }
 
-function loadIndex(): any {
-  let result = {
-    tests: {},
-  };
-
-  if (fs.existsSync(`${basePath}/index.yaml`)) {
-    let fileContents = fs.readFileSync(`${basePath}/index.yaml`, "utf8");
-    if (fileContents) result = YAML.parse(fileContents);
-  } else {
-    // write first index
-    fs.writeFileSync(
-      `${basePath}/index.yaml`,
-      YAML.stringify(result, {
-        aliasDuplicateObjects: false,
-        blockQuote: "literal",
-      }),
-    );
-  }
-
-  return result;
-}
-
-function saveIndex() {
-  // write first index
-  fs.writeFileSync(
-    `${basePath}/index.yaml`,
-    YAML.stringify(index, {
-      aliasDuplicateObjects: false,
-      blockQuote: "literal",
-    }),
-  );
-}
-
 app.listen("8080", () => {
   console.log(`app listening on port 8080`);
 });
 
 process.on("beforeExit", (code) => {
   console.log("Process beforeExit event with code: ", code);
-  saveIndex();
 });

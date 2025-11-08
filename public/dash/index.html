@@ -3,11 +3,15 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" type="image/x-icon" href="/favicon.png" />
         <title>Upstream TDD Dashboard</title>
         <!-- Load Tailwind CSS -->
         <script src="https://cdn.tailwindcss.com"></script>
         <!-- Load Lucide Icons -->
         <script src="https://unpkg.com/lucide@latest"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/yaml/yaml.min.js"></script>
+
         <style>
             /* Custom scrollbar for dark theme */
             ::-webkit-scrollbar {
@@ -36,6 +40,37 @@
                     0 10px 15px -3px rgba(0, 0, 0, 0.2),
                     0 4px 6px -2px rgba(0, 0, 0, 0.1);
             }
+
+            /* CodeMirror Customization */
+            .CodeMirror {
+                font-size: 14px;
+                line-height: 1.5;
+                height: 100%; /* Important for fill */
+                border-radius: 0.5rem;
+                box-shadow:
+                    0 4px 6px -1px rgba(0, 0, 0, 0.5),
+                    0 2px 4px -2px rgba(0, 0, 0, 0.5);
+                background-color: var(
+                    --bg-card
+                ); /* Ensure editor background matches card */
+            }
+            /* Hide the initial textarea */
+            #yaml-editor-textarea {
+                display: none;
+            }
+
+            /* Utility class for button animations */
+            .button-pulse {
+                transition: all 0.15s ease-in-out;
+            }
+            .button-pulse:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 5px 15px -3px rgba(0, 0, 0, 0.3);
+            }
+            .button-pulse:active {
+                transform: translateY(1px);
+                box-shadow: none;
+            }
         </style>
         <script>
             tailwind.config = {
@@ -56,18 +91,33 @@
                 },
             };
         </script>
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css"
+        />
     </head>
     <body
         class="bg-primary-dark text-gray-100 min-h-screen font-sans p-4 md:p-8"
     >
-        <header class="mb-10 border-b border-gray-700 pb-4">
-            <h1 class="text-4xl font-extrabold tracking-tight">
-                <span class="text-primary-accent">Upstream TDD</span>
-                <span class="text-accent-green">|</span> Dashboard
-            </h1>
-            <p class="text-gray-400">
-                Real-time overview of all test suite results.
-            </p>
+        <header
+            class="mb-10 border-b border-gray-700 pb-4 flex justify-between"
+        >
+            <div>
+                <h1 class="text-4xl font-extrabold tracking-tight">
+                    <a href="/" class="cursor-pointer">
+                        <span class="text-primary-accent">Upstream</span>
+                    </a>
+                    <span class="text-accent-green">|</span> Dashboard
+                </h1>
+
+                <p class="text-gray-400">
+                    Real-time overview of all test results.
+                </p>
+            </div>
         </header>
 
         <main class="container mx-auto">
@@ -77,6 +127,31 @@
                 class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"
             >
                 <!-- Summary tiles will be injected here by JavaScript -->
+            </section>
+
+            <!-- Test Definition Section -->
+            <section class="mb-8">
+                <h2
+                    class="text-2xl font-semibold text-white mb-6 border-l-4 border-accent-yellow pl-3"
+                >
+                    Test Definition
+                </h2>
+                <div
+                    id="def-editor"
+                    class="space-y-6 max-h-[360px]"
+                    style="overflow-y: auto"
+                >
+                    <textarea id="yaml-editor-textarea"></textarea>
+                </div>
+                <div class="mt-4">
+                    <button
+                        onclick="runTest()"
+                        id="openModalBtn"
+                        class="text-[#020617] px-4 py-2 text-m font-semibold rounded-xl text-dark-bg bg-primary-accent hover:bg-teal-300 transition duration-300 shadow-xl shadow-primary-accent/30 transform hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                        Save & Run
+                    </button>
+                </div>
             </section>
 
             <!-- Individual Test Results Section -->
@@ -92,13 +167,6 @@
             </section>
         </main>
 
-        <footer
-            class="mt-12 pt-6 border-t border-gray-800 text-center text-gray-500 text-sm"
-        >
-            Upstream Dashboard &copy; 2024. Data refreshed:
-            <span id="refresh-time"></span>
-        </footer>
-
         <script>
             // Set the core data structure
             const urlParams = new URLSearchParams(window.location.search);
@@ -106,6 +174,9 @@
             var TEST_DATA = {
                 results: {},
             };
+            /** YAML Editor */
+            let editor;
+            let consoleElement;
 
             let dataEventHandler = (event) => {
                 if (event && event.data) {
@@ -115,30 +186,24 @@
             };
 
             let dataErrorHandler = (event) => {
-                console.log("Error occurred, trying to reconnect:", event);
-                eventSource = new EventSource(`/events?id=${testId}`);
-                eventSource.onmessage = dataEventHandler;
-                eventSource.onerror = dataErrorHandler;
+                console.log(
+                    "Error occurred, trying to reconnect in 5 seconds:",
+                    event,
+                );
+                if (eventSource) {
+                    eventSource.close();
+                }
+                setTimeout(() => {
+                    console.log("Trying to reconnect to test event source...");
+                    eventSource = new EventSource(`/events?id=${testId}`);
+                    eventSource.onmessage = dataEventHandler;
+                    eventSource.onerror = dataErrorHandler;
+                }, 5000);
             };
 
             var eventSource = new EventSource(`/events?id=${testId}`);
             eventSource.onmessage = dataEventHandler;
             eventSource.onerror = dataErrorHandler;
-
-            // Log connection error
-            // eventSource.onerror = function (event) {
-            //     console.log("Error occurred, trying to reconnect:", event);
-            //     eventSource = new EventSource(`/events?id=${testId}`);
-            //     event.onmessage = dataEventHandler;
-            // };
-
-            // Listen for messages from the server
-            // eventSource.onmessage = function (event) {
-            //     if (event && event.data) {
-            //         TEST_DATA = JSON.parse(event.data);
-            //         refreshDashboard();
-            //     }
-            // };
 
             /**
              * Converts a Unix timestamp (seconds) to a human-readable date and time string.
@@ -313,6 +378,38 @@
                 }
 
                 refreshDashboard();
+
+                // 1. Initialize CodeMirror Editor
+                const textarea = document.getElementById(
+                    "yaml-editor-textarea",
+                );
+                editor = CodeMirror.fromTextArea(textarea, {
+                    mode: "yaml",
+                    theme: "dracula",
+                    lineNumbers: true,
+                    indentUnit: 2,
+                    tabSize: 2,
+                    smartIndent: true,
+                    autofocus: true,
+                    lineWrapping: true,
+                    matchBrackets: true,
+                });
+
+                // Make CodeMirror take up full height of its container
+                editor.setSize(null, "100%");
+
+                // load test data from server
+                fetch("/tests/" + testId, {
+                    headers: {
+                        Accept: "application/yaml",
+                    },
+                })
+                    .then((response) => {
+                        return response.text();
+                    })
+                    .then((responseContent) => {
+                        editor.setValue(responseContent);
+                    });
             }
 
             function refreshDashboard() {
@@ -325,9 +422,91 @@
                     lucide.createIcons();
                 }
 
-                // 3. Set refresh time
-                document.getElementById("refresh-time").textContent =
-                    formatTimestamp(Math.floor(Date.now() / 1000));
+                // // 3. Set refresh time
+                // document.getElementById("refresh-time").textContent =
+                //     formatTimestamp(Math.floor(Date.now() / 1000));
+            }
+
+            // Helper function to update the message console
+            function updateConsole(message, type = "info") {
+                let bgColor = "bg-gray-700/50";
+                let textColor = "text-gray-300";
+
+                if (type === "success") {
+                    bgColor = "bg-green-700/70";
+                    textColor = "text-white";
+                } else if (type === "error") {
+                    bgColor = "bg-red-700/70";
+                    textColor = "text-white";
+                }
+
+                consoleElement.className = `p-3 rounded-lg flex-grow w-full md:w-auto text-sm text-center md:text-left transition duration-300 ${bgColor} ${textColor}`;
+                consoleElement.innerHTML = message;
+            }
+
+            function handleSave() {
+                if (!editor)
+                    return updateConsole("Editor not initialized.", "error");
+
+                const config = editor.getValue();
+
+                try {
+                    // For a real app, this would be an API call, but here we use local storage.
+                    localStorage.setItem("upstream_tdd_config", config);
+                    updateConsole(
+                        "Configuration saved successfully to local storage.",
+                        "success",
+                    );
+                } catch (error) {
+                    updateConsole(
+                        "Error saving configuration: " + error.message,
+                        "error",
+                    );
+                }
+            }
+
+            function runTest() {
+                if (!editor) {
+                    console.error("Editor not defined, cannot run test.");
+                    return;
+                }
+
+                const config = editor.getValue();
+                fetch(`/tests/${testId}/run`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/yaml",
+                    },
+                    body: config,
+                }).then((response) => {
+                    console.log(response);
+                });
+                //
+
+                // // Placeholder logic for running tests (displaying a message)
+                // const lineCount = config.split("\n").length;
+
+                // updateConsole(
+                //     `Running tests for a configuration of ${lineCount} lines... (Result: Success!)`,
+                //     "success",
+                // );
+
+                // In a real application, you would send 'config' to a backend service here.
+                // Example of simulated delay:
+                // setTimeout(() => {
+                //     updateConsole(`[${new Date().toLocaleTimeString()}] Tests completed. 2 out of 2 assertions passed.`, 'success');
+                // }, 1500);
+            }
+
+            function loadConfiguration() {
+                const savedConfig = localStorage.getItem("upstream_tdd_config");
+                if (savedConfig && editor) {
+                    editor.setValue(savedConfig);
+                    updateConsole(
+                        "Loaded configuration from previous session.",
+                        "info",
+                    );
+                }
             }
 
             window.onload = initializeDashboard;

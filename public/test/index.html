@@ -3,6 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" type="image/x-icon" href="/favicon.png" />
         <title>Upstream TDD - Test Details</title>
         <!-- Load Tailwind CSS -->
         <script src="https://cdn.tailwindcss.com"></script>
@@ -115,7 +116,7 @@
             <header class="mb-8">
                 <a onclick="goToOverview()">
                     <h1 class="text-4xl font-extrabold tracking-tight">
-                        <span class="text-primary-accent">Upstream TDD</span>
+                        <span class="text-primary-accent">Upstream</span>
                         <span class="text-accent-green">|</span> Dashboard
                     </h1>
                     <p class="text-gray-400">
@@ -196,17 +197,24 @@
             };
 
             let dataErrorHandler = (event) => {
-                console.log("Error occurred, trying to reconnect:", event);
-                eventSource = new EventSource(
-                    `/events?id=${testId + "." + caseId}`,
+                console.log(
+                    "Error occurred, trying to reconnect in 5 seconds:",
+                    event,
                 );
-                eventSource.onmessage = dataEventHandler;
-                eventSource.onerror = dataErrorHandler;
+                if (eventSource) {
+                    eventSource.close();
+                }
+                setTimeout(() => {
+                    console.log("Trying to reconnect to test event source...");
+                    eventSource = new EventSource(
+                        `/events?id=${testId}.${caseId}`,
+                    );
+                    eventSource.onmessage = dataEventHandler;
+                    eventSource.onerror = dataErrorHandler;
+                }, 5000);
             };
 
-            var eventSource = new EventSource(
-                `/events?id=${testId + "." + caseId}`,
-            );
+            var eventSource = new EventSource(`/events?id=${testId}.${caseId}`);
             eventSource.onmessage = dataEventHandler;
             eventSource.onerror = dataErrorHandler;
 
