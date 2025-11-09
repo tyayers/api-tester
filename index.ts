@@ -3,6 +3,7 @@ import fs from "fs";
 import * as YAML from "yaml";
 import crypto from "crypto";
 import jp from "jsonpath";
+import yazl from "yazl";
 
 const app = express();
 
@@ -11,13 +12,13 @@ app.use(express.json());
 app.use(
   express.json({
     type: "application/json",
-    limit: "2mb",
+    limit: "8mb",
   }),
 );
 app.use(
   express.text({
     type: "application/yaml",
-    limit: "2mb",
+    limit: "8mb",
   }),
 );
 
@@ -46,6 +47,27 @@ app.get("/tests/:id", function (req, res) {
   }
 });
 
+app.get("/tests/:id/download", function (req, res) {
+  if (fs.existsSync(`${basePath}/${req.params.id}`)) {
+    let files = fs.readdirSync(`${basePath}/${req.params.id}`);
+    let zipFile = new yazl.ZipFile();
+    for (let file of files) {
+      zipFile.addFile(`${basePath}/${req.params.id}/${file}`, file);
+    }
+    zipFile.outputStream
+      .pipe(fs.createWriteStream(req.params.id + ".zip"))
+      .on("close", function () {
+        let returnFile = fs.readFileSync(req.params.id + ".zip");
+        res.setHeader("Content-Type", "application/octet-stream");
+        res.status(201).send(returnFile);
+        fs.rmSync(req.params.id + ".zip");
+      });
+    zipFile.end();
+  } else {
+    res.status(404).send("Test suite not found.");
+  }
+});
+
 app.put("/tests/:id", function (req, res) {
   let requestType = req.header("Content-Type") ?? "";
   let responseType = req.header("Accept");
@@ -64,6 +86,17 @@ app.put("/tests/:id", function (req, res) {
   if (!saveResult) {
     res.status(404).send("Test not found.");
   } else res.send("OK.");
+});
+
+app.delete("/tests/:id", function (req, res) {
+  if (fs.existsSync(`${basePath}/${req.params.id}`)) {
+    fs.rmSync(`${basePath}/${req.params.id}`, {
+      recursive: true,
+    });
+    res.send(`Test ${req.params.id} deleted.`);
+  } else {
+    res.status(404).send("Not found.");
+  }
 });
 
 app.post("/tests", function (req, res) {

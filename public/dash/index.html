@@ -139,53 +139,87 @@
                     Real-time overview of all test results.
                 </p>
             </div>
+            <button
+                onclick="exportAll()"
+                id="openModalBtn"
+                title="Download all test suite files as ZIP"
+                class="mb-6 text-[#020617] px-4 py-2 text-m font-semibold rounded-xl text-dark-bg bg-primary-accent hover:bg-teal-300 transition duration-300 shadow-xl shadow-primary-accent/30 transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+                Export All
+            </button>
         </header>
 
         <main class="container mx-auto">
-            <!-- Summary Statistics Section -->
-            <section
-                id="summary-section"
-                class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12"
-            >
-                <!-- Summary tiles will be injected here by JavaScript -->
-            </section>
+            <div id="main-frame" class="hidden">
+                <!-- Summary Statistics Section -->
+                <section
+                    id="summary-section"
+                    class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12"
+                >
+                    <!-- Summary tiles will be injected here by JavaScript -->
+                </section>
 
-            <!-- Test Definition Section -->
-            <section class="mb-8">
-                <h2
-                    class="text-2xl font-semibold text-white mb-6 border-l-4 border-accent-yellow pl-3"
-                >
-                    Test Definition
-                </h2>
-                <div
-                    id="def-editor"
-                    class="space-y-6 max-h-[360px]"
-                    style="overflow-y: auto"
-                >
-                    <textarea id="yaml-editor-textarea"></textarea>
-                </div>
-                <div class="mt-4">
-                    <button
-                        onclick="runTest()"
-                        id="openModalBtn"
-                        class="text-[#020617] px-4 py-2 text-m font-semibold rounded-xl text-dark-bg bg-primary-accent hover:bg-teal-300 transition duration-300 shadow-xl shadow-primary-accent/30 transform hover:scale-[1.02] active:scale-[0.98]"
+                <!-- Test Definition Section -->
+                <section class="mb-8">
+                    <h2
+                        class="text-2xl font-semibold text-white mb-6 border-l-4 border-accent-yellow pl-3"
                     >
-                        Save & Run
-                    </button>
-                </div>
-            </section>
+                        Test Definitions
+                    </h2>
+                    <div
+                        id="def-editor"
+                        class="space-y-6 max-h-[360px]"
+                        style="overflow-y: auto"
+                    >
+                        <textarea id="yaml-editor-textarea"></textarea>
+                    </div>
+                    <div class="mt-4">
+                        <button
+                            onclick="runTest()"
+                            id="openModalBtn"
+                            class="text-[#020617] px-4 py-2 text-m font-semibold rounded-xl text-dark-bg bg-primary-accent hover:bg-teal-300 transition duration-300 shadow-xl shadow-primary-accent/30 transform hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                            Save & Run
+                        </button>
+                    </div>
+                </section>
 
-            <!-- Individual Test Results Section -->
-            <section class="mb-8">
-                <h2
-                    class="text-2xl font-semibold text-white mb-6 border-l-4 border-accent-yellow pl-3"
-                >
-                    Individual Test Results
-                </h2>
-                <div id="results-container" class="space-y-6">
-                    <!-- Test cards will be injected here by JavaScript -->
-                </div>
-            </section>
+                <!-- Individual Test Results Section -->
+                <section class="mb-8">
+                    <h2
+                        class="text-2xl font-semibold text-white mb-6 border-l-4 border-accent-yellow pl-3"
+                    >
+                        Individual Test Results
+                    </h2>
+                    <div id="results-container" class="space-y-6">
+                        <!-- Test cards will be injected here by JavaScript -->
+                    </div>
+                </section>
+
+                <!-- Danger Section -->
+                <section class="mb-8">
+                    <h2
+                        class="text-2xl font-semibold text-white mb-6 border-l-4 border-accent-red pl-3"
+                    >
+                        Danger Zone
+                    </h2>
+                    <div
+                        id="def-editor"
+                        class="space-y-6 max-h-[360px]"
+                        style="overflow-y: auto"
+                    >
+                        <textarea id="yaml-editor-textarea"></textarea>
+                    </div>
+                    <div class="mt-4">
+                        <button
+                            onclick="deleteAll()"
+                            class="text-[#020617] px-4 py-2 text-m font-semibold rounded-xl text-dark-bg bg-red-400 hover:bg-red-500 transition duration-300 shadow-xl shadow-primary-accent/30 transform hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                            Delete All
+                        </button>
+                    </div>
+                </section>
+            </div>
 
             <div
                 id="input-modal"
@@ -492,6 +526,11 @@
                     lucide.createIcons();
                 }
 
+                // 3. show frame
+                document
+                    .getElementById("main-frame")
+                    .classList.remove("hidden");
+
                 // // 3. Set refresh time
                 // document.getElementById("refresh-time").textContent =
                 //     formatTimestamp(Math.floor(Date.now() / 1000));
@@ -554,6 +593,7 @@
             }
 
             function showInputModal() {
+                document.getElementById("main-frame").classList.add("hidden");
                 document.getElementById("test-id-input").value = "";
                 document
                     .getElementById("input-modal")
@@ -570,7 +610,36 @@
             function handleIdSubmit() {
                 hideInputModal();
                 testId = document.getElementById("test-id-input").value;
-                initializeDashboard();
+                window.location.replace(
+                    `${window.location.origin}${window.location.pathname}?id=${testId}`,
+                );
+            }
+
+            function exportAll() {
+                fetch(
+                    `${window.location.origin}/tests/${testId}/download`,
+                ).then(function (t) {
+                    return t.blob().then((b) => {
+                        var a = document.createElement("a");
+                        a.href = URL.createObjectURL(b);
+                        a.setAttribute("download", `${testId}.zip`);
+                        a.click();
+                    });
+                });
+            }
+
+            function deleteAll() {
+                let response = window.confirm(
+                    "Are you sure that you want to delete the test suite? This action cannot be undone.",
+                );
+
+                if (response) {
+                    fetch(`${window.location.origin}/tests/${testId}`, {
+                        method: "DELETE",
+                    });
+                    alert("The test suite has been deleted.");
+                    window.location.href = window.origin;
+                }
             }
 
             window.onload = initializeDashboard;
