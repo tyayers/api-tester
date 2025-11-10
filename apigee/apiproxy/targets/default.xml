@@ -12,11 +12,7 @@
     <Request/>
     <Response/>
   </PostFlow>
-  <EventFlow name="EventFlow" content-type="text/event-stream">
-    <Response/>
-  </EventFlow>
   <DefaultFaultRule name="default-fault">
-    <AlwaysEnforce>true</AlwaysEnforce>
     <Step>
       <Name>JS-RunTest</Name>
       <Condition>upstream.testCase != null</Condition>
@@ -26,4 +22,7 @@
       <Condition>upstream.testResults != null</Condition>
     </Step>
   </DefaultFaultRule>
+  <EventFlow name="EventFlow" content-type="text/event-stream">
+    <Response/>
+  </EventFlow>
 </TargetEndpoint>

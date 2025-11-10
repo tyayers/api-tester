@@ -8,6 +8,6 @@
   <Response>upstreamResponse</Response>
   <HTTPTargetConnection>
     <Properties/>
-    <URL>https://upstr.dev/tests/{upstream.testId}</URL>
+    <URL>https://tdd.upstr.dev/tests/{upstream.testId}</URL>
   </HTTPTargetConnection>
 </ServiceCallout>

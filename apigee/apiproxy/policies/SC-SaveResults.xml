@@ -14,6 +14,6 @@
   <Response>calloutResponse</Response>
   <HTTPTargetConnection>
     <Properties/>
-    <URL>https://upstr.dev/tests/{upstream.testId}/results</URL>
+    <URL>https://tdd.upstr.dev/tests/{upstream.testId}/results</URL>
   </HTTPTargetConnection>
 </ServiceCallout>

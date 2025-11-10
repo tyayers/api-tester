@@ -1,18 +1,19 @@
 var upstreamId = context.getVariable("upstream.testId");
 var testCaseId = context.getVariable("upstream.testCaseId");
 var testContent = context.getVariable("upstreamResponse.content");
+var proxyUrl = context.getVariable("proxy.url");
 var pathSuffix = context.getVariable("proxy.pathsuffix");
 var requestVerb = context.getVariable("request.verb");
 
 if (upstreamId && testContent) {
   var testCases = JSON.parse(testContent);
   if (testCases) {
-    var testCase = findTest(testCaseId, testCases, pathSuffix, requestVerb, request.content);
+    var testCase = findTest(testCaseId, testCases, proxyUrl, pathSuffix, requestVerb, request.content);
     if (testCase) {
       context.setVariable("upstream.testCase", JSON.stringify(testCase));
       // request
-      if (testCase.request)
-        context.setVariable("request.content", testCase.request);
+      if (testCase.body)
+        context.setVariable("request.content", testCase.body);
       
       // variables
       if (testCase.variables) {
@@ -31,7 +32,7 @@ if (upstreamId && testContent) {
   }
 }
 
-function findTest(testId, testCases, requestPath, requestVerb, requestContent) {
+function findTest(testId, testCases, proxyUrl, requestPath, requestVerb, requestContent) {
   print("Finding test with requestPath: " + requestPath + " and requestVerb " + requestVerb);
   var result = undefined;
 
@@ -41,18 +42,15 @@ function findTest(testId, testCases, requestPath, requestVerb, requestContent) {
       print("Found test case using name: " + testId);
       result = filteredArray[0];
     }
-    else if (!Number.isNaN(testId) && Number(testId) < testCases.tests.length) {
-      print("Found test case using position: " + testId);
-      result = testCases.tests[Number(testId)];
-    } else {
-      filteredArray = testCases.tests.filter((x) => (x.verb == requestVerb && x.path == requestPath));
+    else {
+      filteredArray = testCases.tests.filter((x) => (proxyUrl.startsWith(x.url) && (x.method == requestVerb)));
       if (filteredArray.length > 0) {
-        print("Found test case using path and verb: " + requestVerb + " - " + requestPath);
+        print("Found test case using url: " + proxyUrl);
         result = filteredArray[0];
       } else {
-        filteredArray = testCases.tests.filter((x) => x.request == requestContent);
+        filteredArray = testCases.tests.filter((x) => (x.method == requestVerb && x.path == requestPath));
         if (filteredArray.length > 0) {
-          print("Found test case using content: " + requestContent);
+          print("Found test case using path and verb: " + requestVerb + " - " + requestPath);
           result = filteredArray[0];
         }
         else if (testCases.tests.length > 0) {

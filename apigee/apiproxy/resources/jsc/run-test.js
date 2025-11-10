@@ -3,12 +3,15 @@ var testCase = context.getVariable("upstream.testCase");
 
 if (upstreamId && testCase) {
   var testCaseObject = JSON.parse(testCase);
+  var responseContent = context.getVariable("response.content");
   print("Running test " + upstreamId + "." + testCaseObject.name);
 
   var testResults = {
     reportFormat: "CTRF",
     extra: {
-      testCase: testCaseObject.name
+      testCase: testCaseObject.name,
+      response: responseContent,
+      responseHeaders: {}
     },
     results: {
       tool: {
@@ -24,91 +27,15 @@ if (upstreamId && testCase) {
     }
   };
 
-  for (var i=0; i<testCaseObject.assertions.length; i++) {
-    var assertion = testCaseObject.assertions[i];
-    if (assertion.includes("===")) {
-      // exact test
-      var pieces = assertion.split("===");
-      if (pieces.length === 2) {
-        var value = getValue(pieces[0]);
-        context.setVariable("response.header.x-upstream-" + pieces[0], value);
-        if (value.trim() === pieces[1].trim()) {
-          testResults.results.summary.tests++;
-          testResults.results.summary.passed++;
-          testResults.results.tests.push({
-            name: assertion,
-            status: "passed",
-            message: "Values matched: " + pieces[1] + "===" + value,
-            duration: 0
-          });
-        } else {
-          print("Assertion " + assertion + " failed: " + value);
-          testResults.results.summary.tests++;
-          testResults.results.summary.failed++;
-          testResults.results.tests.push({
-            name: assertion,
-            status: "failed",
-            message: "Value didn't match: " + pieces[1] + "!==" + value,
-            duration: 0
-          });
-        }
-      }
-    } else if (assertion.includes("==")) {
-      // rough test
-      var pieces = assertion.split("==");
-      if (pieces.length === 2) {
-        var value = getValue(pieces[0]);
-        context.setVariable("response.header.x-upstream-" + pieces[0], value);
-        if (value.trim() == pieces[1].trim()) {
-          testResults.results.summary.tests++;
-          testResults.results.summary.passed++;
-          testResults.results.tests.push({
-            name: assertion,
-            status: "passed",
-            message: "Values matched: " + pieces[1] + "===" + value,
-            duration: 0
-          });
-        } else {
-          print("Assertion " + assertion + " failed: " + value);
-          testResults.results.summary.tests++;
-          testResults.results.summary.failed++;
-          testResults.results.tests.push({
-            name: assertion,
-            status: "failed",
-            message: "Value didn't match: " + pieces[1] + "!=" + value,
-            duration: 0
-          });
-        }
-      }
-    } else if (assertion.includes(":")) {
-      // contains
-      var pieces = assertion.split(":");
-      if (pieces.length === 2) {
-        var value = getValue(pieces[0]);
-        context.setVariable("response.header.x-upstream-" + pieces[0], value);
-        if (value.trim().includes(pieces[1].trim())) {
-          testResults.results.summary.tests++;
-          testResults.results.summary.passed++;
-          testResults.results.tests.push({
-            name: assertion,
-            status: "passed",
-            message: "Values matched: " + pieces[1] + ":" + value,
-            duration: 0
-          });
-        } else {
-          print("Assertion " + assertion + " failed: " + value);
-          testResults.results.summary.tests++;
-          testResults.results.summary.failed++;
-          testResults.results.tests.push({
-            name: assertion,
-            status: "failed",
-            message: "Value didn't match: " + pieces[1] + "!:" + value,
-            duration: 0
-          });
-        }
-      }
-    }
+  var headerNames = context.getVariable('response.headers.names');
+  var headerCount = context.getVariable('response.headers.count');
+  headerNames = headerNames.toArray();
+
+  for (var i = 0; i < headerNames.length; i++) {
+    testResults.extra.responseHeaders[headerNames[i]] = context.getVariable('response.header.'+headerNames[i]);
   }
+  
+  checkAssertions(testCaseObject, testResults, context, responseContent);
 
   testResults.results.summary.stop = Date.now();
   // save results
@@ -116,7 +43,143 @@ if (upstreamId && testCase) {
   context.setVariable("response.header.x-upstream-results", testResults.results.summary.tests + " tests, " + testResults.results.summary.passed + " passed, " + testResults.results.summary.failed + " failed");
 }
 
-function getValue(name) {
+function checkAssertions(
+  testCaseObject,
+  testResults,
+  context,
+  responseContent
+) {
+  for (var i = 0; i < testCaseObject.assertions.length; i++) {
+    var assertion = testCaseObject.assertions[i];
+    if (assertion.includes("!==")) {
+      // doesn't equal strict
+      var pieces = assertion.split("!==");
+      if (pieces.length === 2) {
+        var value = getValue(pieces[0], context, responseContent);
+        if (value.trim() !== pieces[1].trim()) {
+          testResults.results.summary.tests++;
+          testResults.results.summary.passed++;
+          testResults.results.tests.push({
+            name: assertion,
+            status: "passed",
+            message: "Values matched: " + pieces[1] + "!==" + value,
+            duration: 0,
+          });
+        } else {
+          testResults.results.summary.tests++;
+          testResults.results.summary.failed++;
+          testResults.results.tests.push({
+            name: assertion,
+            status: "failed",
+            message: "Value didn't match: " + pieces[1] + "===" + value,
+            duration: 0,
+          });
+        }
+      }
+    } else if (assertion.includes("!=")) {
+      // doesn't equal
+      var pieces = assertion.split("!=");
+      if (pieces.length === 2) {
+        var value = getValue(pieces[0], context, responseContent);
+        if (value.trim().toLowerCase() != pieces[1].trim().toLowerCase()) {
+          testResults.results.summary.tests++;
+          testResults.results.summary.passed++;
+          testResults.results.tests.push({
+            name: assertion,
+            status: "passed",
+            message: "Values matched: " + pieces[1] + "!=" + value,
+            duration: 0,
+          });
+        } else {
+          testResults.results.summary.tests++;
+          testResults.results.summary.failed++;
+          testResults.results.tests.push({
+            name: assertion,
+            status: "failed",
+            message: "Value didn't match: " + pieces[1] + "==" + value,
+            duration: 0,
+          });
+        }
+      }
+    } else if (assertion.includes("===")) {
+      // exact test
+      var pieces = assertion.split("===");
+      if (pieces.length === 2) {
+        var value = getValue(pieces[0], context, responseContent);
+        if (value.trim() === pieces[1].trim()) {
+          testResults.results.summary.tests++;
+          testResults.results.summary.passed++;
+          testResults.results.tests.push({
+            name: assertion,
+            status: "passed",
+            message: "Values matched: " + pieces[1] + "===" + value,
+            duration: 0,
+          });
+        } else {
+          testResults.results.summary.tests++;
+          testResults.results.summary.failed++;
+          testResults.results.tests.push({
+            name: assertion,
+            status: "failed",
+            message: "Value didn't match: " + pieces[1] + "!==" + value,
+            duration: 0,
+          });
+        }
+      }
+    } else if (assertion.includes("==")) {
+      // rough test
+      var pieces = assertion.split("==");
+      if (pieces.length === 2) {
+        var value = getValue(pieces[0], context, responseContent);
+        if (value.trim().toLowerCase() == pieces[1].trim().toLowerCase()) {
+          testResults.results.summary.tests++;
+          testResults.results.summary.passed++;
+          testResults.results.tests.push({
+            name: assertion,
+            status: "passed",
+            message: "Values matched: " + pieces[1] + "==" + value,
+            duration: 0,
+          });
+        } else {
+          testResults.results.summary.tests++;
+          testResults.results.summary.failed++;
+          testResults.results.tests.push({
+            name: assertion,
+            status: "failed",
+            message: "Value didn't match: " + pieces[1] + "!=" + value,
+            duration: 0,
+          });
+        }
+      }
+    } else if (assertion.includes(":")) {
+      // contains
+      var pieces = assertion.split(":");
+      if (pieces.length === 2) {
+        var value = getValue(pieces[0], context, responseContent);
+        if (value.trim().includes(pieces[1].trim())) {
+          testResults.results.summary.tests++;
+          testResults.results.summary.passed++;
+          testResults.results.tests.push({
+            name: assertion,
+            status: "passed",
+            message: "Values matched: " + pieces[1] + ":" + value,
+            duration: 0,
+          });
+        } else {
+          testResults.results.summary.tests++;
+          testResults.results.summary.failed++;
+          testResults.results.tests.push({
+            name: assertion,
+            status: "failed",
+            message: "Value didn't match: " + pieces[1] + "!:" + value,
+            duration: 0,
+          });
+        }
+      }
+    }
+  }
+}
+function getValue(name, context, responseContent) {
   var result = "";
   if (name.startsWith("$")) {
     // jsonpath

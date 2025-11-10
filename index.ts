@@ -129,7 +129,7 @@ app.put("/tests/:id", function (req, res) {
   }
 });
 
-app.delete("/tests/:id", function (req, res) {
+app.delete("/tests/:id/", function (req, res) {
   let testIdPieces = req.params.id.split("-");
   testIdPieces.splice(testIdPieces.length - 1);
   let viewId = testIdPieces.join("-");
@@ -145,6 +145,50 @@ app.delete("/tests/:id", function (req, res) {
         recursive: true,
       });
       res.send(`Test ${req.params.id} deleted.`);
+    } else {
+      res.status(401).send("Not authorized.");
+    }
+  } else {
+    res.status(404).send("Not found.");
+  }
+});
+
+app.delete("/tests/:id/cases/:caseId", function (req, res) {
+  let testIdPieces = req.params.id.split("-");
+  testIdPieces.splice(testIdPieces.length - 1);
+  let viewId = testIdPieces.join("-");
+  if (fs.existsSync(`${basePath}/${viewId}/tests.yaml`)) {
+    let fileContents = fs.readFileSync(
+      `${basePath}/${viewId}/tests.yaml`,
+      "utf8",
+    );
+    let tests = YAML.parse(fileContents);
+    // only allow operation if full id was sent
+    if (tests.id === req.params.id) {
+      fileContents = fs.readFileSync(
+        `${basePath}/${viewId}/results.yaml`,
+        "utf8",
+      );
+      let results = YAML.parse(fileContents);
+      if (results.results[req.params.caseId]) {
+        delete results.results[req.params.caseId];
+        results.updated = Date.now();
+        sendTestsUpdateEvent(viewId, results);
+
+        fs.writeFileSync(
+          `${basePath}/${viewId}/results.yaml`,
+          YAML.stringify(results, {
+            aliasDuplicateObjects: false,
+            blockQuote: "literal",
+          }),
+        );
+
+        if (fs.existsSync(`${basePath}/${viewId}/${req.params.caseId}.yaml`)) {
+          fs.rmSync(`${basePath}/${viewId}/${req.params.caseId}.yaml`);
+        }
+      }
+
+      res.send(`Test case ${req.params.caseId} deleted.`);
     } else {
       res.status(401).send("Not authorized.");
     }
@@ -330,7 +374,7 @@ app.get("/tests/:id/results", function (req, res) {
   }
 });
 
-app.get("/tests/:id/results/:caseId", function (req, res) {
+app.get("/tests/:id/cases/:caseId/results", function (req, res) {
   let responseType = req.header("Accept");
   let testId = req.params.id;
   let viewId = testId;

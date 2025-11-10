@@ -481,7 +481,11 @@
 
                         <!-- Right: Action Button -->
                         <div class="mt-4 lg:mt-0 lg:ml-8 w-full lg:w-auto">
-                            <a href="/test?id=${testId + "&caseId=" + testName}" target="_blank" class="w-full lg:w-auto inline-flex items-center justify-center bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 shadow-md">
+                            <button onclick="deleteTestCase('${testName}')" class="mt-1 w-full lg:w-auto inline-flex items-center justify-center bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 shadow-md ${testId.length < 36 ? "hidden" : ""}">
+                                Delete
+                                <i data-lucide="trash" class="w-4 h-4 ml-2"></i>
+                            </button>
+                            <a href="/test?id=${testId + "&caseId=" + testName}" target="_blank" class="mt-1 w-full lg:w-auto inline-flex items-center justify-center bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 shadow-md">
                                 View Detailed Report
                                 <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
                             </a>
@@ -628,6 +632,15 @@
                 }).then((response) => {
                     console.log(response);
                 });
+            }
+
+            function deleteTestCase(testCaseId) {
+                fetch(
+                    `${window.location.origin}/tests/${testId}/cases/${testCaseId}`,
+                    {
+                        method: "DELETE",
+                    },
+                );
             }
 
             function showInputModal() {

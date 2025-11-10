@@ -401,7 +401,7 @@
 
             function initialize() {
                 if (testId && caseId) {
-                    fetch("/tests/" + testId + "/results/" + caseId)
+                    fetch("/tests/" + testId + "/cases/" + caseId + "/results")
                         .then((response) => {
                             if (response.status === 200) return response.json();
                         })

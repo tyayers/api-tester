@@ -34,7 +34,6 @@
     </Response>
   </PostFlow>
   <DefaultFaultRule name="default-fault">
-    <AlwaysEnforce>true</AlwaysEnforce>
     <Step>
       <Name>JS-RunTest</Name>
       <Condition>upstream.testCase != null</Condition>
