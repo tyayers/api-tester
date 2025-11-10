@@ -437,6 +437,7 @@ async function runTests(tests: any): Promise<any> {
   });
 }
 
+// This is a standard checkAssertions method that can be used in any javascript environment (nodejs, apigee, others).
 function checkAssertions(
   testCaseObject,
   testResults,
@@ -445,7 +446,57 @@ function checkAssertions(
 ) {
   for (var i = 0; i < testCaseObject.assertions.length; i++) {
     var assertion = testCaseObject.assertions[i];
-    if (assertion.includes("===")) {
+    if (assertion.includes("!==")) {
+      // doesn't equal strict
+      var pieces = assertion.split("!==");
+      if (pieces.length === 2) {
+        var value = getValue(pieces[0], context, responseContent);
+        if (value.trim() !== pieces[1].trim()) {
+          testResults.results.summary.tests++;
+          testResults.results.summary.passed++;
+          testResults.results.tests.push({
+            name: assertion,
+            status: "passed",
+            message: "Values matched: " + pieces[1] + "!==" + value,
+            duration: 0,
+          });
+        } else {
+          testResults.results.summary.tests++;
+          testResults.results.summary.failed++;
+          testResults.results.tests.push({
+            name: assertion,
+            status: "failed",
+            message: "Value didn't match: " + pieces[1] + "===" + value,
+            duration: 0,
+          });
+        }
+      }
+    } else if (assertion.includes("!=")) {
+      // doesn't equal
+      var pieces = assertion.split("!=");
+      if (pieces.length === 2) {
+        var value = getValue(pieces[0], context, responseContent);
+        if (value.trim().toLowerCase() != pieces[1].trim().toLowerCase()) {
+          testResults.results.summary.tests++;
+          testResults.results.summary.passed++;
+          testResults.results.tests.push({
+            name: assertion,
+            status: "passed",
+            message: "Values matched: " + pieces[1] + "!=" + value,
+            duration: 0,
+          });
+        } else {
+          testResults.results.summary.tests++;
+          testResults.results.summary.failed++;
+          testResults.results.tests.push({
+            name: assertion,
+            status: "failed",
+            message: "Value didn't match: " + pieces[1] + "==" + value,
+            duration: 0,
+          });
+        }
+      }
+    } else if (assertion.includes("===")) {
       // exact test
       var pieces = assertion.split("===");
       if (pieces.length === 2) {
@@ -460,7 +511,6 @@ function checkAssertions(
             duration: 0,
           });
         } else {
-          console.log("Assertion " + assertion + " failed: " + value);
           testResults.results.summary.tests++;
           testResults.results.summary.failed++;
           testResults.results.tests.push({
@@ -486,7 +536,6 @@ function checkAssertions(
             duration: 0,
           });
         } else {
-          console.log("Assertion " + assertion + " failed: " + value);
           testResults.results.summary.tests++;
           testResults.results.summary.failed++;
           testResults.results.tests.push({
@@ -512,7 +561,6 @@ function checkAssertions(
             duration: 0,
           });
         } else {
-          console.log("Assertion " + assertion + " failed: " + value);
           testResults.results.summary.tests++;
           testResults.results.summary.failed++;
           testResults.results.tests.push({
