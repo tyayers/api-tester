@@ -11,6 +11,7 @@ if (upstreamId && testCase) {
     extra: {
       testCase: testCaseObject.name,
       response: responseContent,
+      responseStatusCode: context.getVariable("response.status.code"),
       responseHeaders: {}
     },
     results: {
@@ -34,7 +35,7 @@ if (upstreamId && testCase) {
   for (var i = 0; i < headerNames.length; i++) {
     testResults.extra.responseHeaders[headerNames[i]] = context.getVariable('response.header.'+headerNames[i]);
   }
-  
+
   checkAssertions(testCaseObject, testResults, context, responseContent);
 
   testResults.results.summary.stop = Date.now();
@@ -226,14 +227,14 @@ function jsonPath(obj, expr, arg) {
 				var comparatorOp=false
 				var negationCount=0
 				var parenStack=[]
-		
+
 				for (var i=0; i < str.length; i++) {
 
 					if (mode.inKeyName && !/[$_A-Za-z0-9.]/.test(str[i])){
 						mode.inKeyName=false
 					}
 
-					if (mode.inDoubleQuote || mode.inSingleQuote) {   
+					if (mode.inDoubleQuote || mode.inSingleQuote) {
 						if (mode.inEscape) { mode.inEscape = false }
 						else if (str[i] === '"' && mode.inDoubleQuote) { mode.inDoubleQuote = false; }
 						else if (str[i] === "'" && mode.inSingleQuote){ mode.inSingleQuote = false; }
@@ -247,7 +248,7 @@ function jsonPath(obj, expr, arg) {
 						else if (str[i] === '\\' ) { mode.inEscape = true }
 					}
 					else if(mode.inKeyName){
-						lastPathChar=i			
+						lastPathChar=i
 					}
 					else if (str[i] === '"' || str[i] === "'") {
 						if (str[i] === '"'){ mode.inDoubleQuote = true; }
@@ -256,11 +257,11 @@ function jsonPath(obj, expr, arg) {
 					}
 					else if (str[i] === '$' || str[i] === '@') {
 						lastPathChar = i
-		
+
 						if (str[i+1] === '.') {
 							mode.inKeyName=true
-							lastPathChar=i				
-						}	
+							lastPathChar=i
+						}
 					}
 					else if (str[i] === ']') {
 						lastPathChar=i
@@ -268,7 +269,7 @@ function jsonPath(obj, expr, arg) {
 						if (str[i+1] === "."){
 							mode.inKeyName=true
 							i++
-						}		
+						}
 					}
 					else if (str[i] === '/' ) {
 						mode.inRegexp = true
@@ -297,9 +298,9 @@ function jsonPath(obj, expr, arg) {
 							i++
 						}
 						mode.inPath=false
-						comparatorOp=false  	
-				
-						if(negationCount){					
+						comparatorOp=false
+
+						if(negationCount){
 							for (var loop=0; loop<negationCount; negationCount--){
 								str.splice(i,0,")")
 								i++
@@ -311,17 +312,17 @@ function jsonPath(obj, expr, arg) {
 						negationCount++
 						i++
 					}
-					else if(str[i] === '('){				
+					else if(str[i] === '('){
 						parenStack.unshift(negationCount)
 						negationCount=0
 					}
 					else if(str[i] === ')'){
-						if(negationCount){					
+						if(negationCount){
 							for (var loop=0; loop<negationCount; negationCount--){
 								str.splice(i+1,0,")")
 								i++
 							}
-						}	
+						}
 						negationCount=parenStack.shift()
 					}
 
@@ -329,7 +330,7 @@ function jsonPath(obj, expr, arg) {
 						if(comparatorOp != true && lastPathChar !== undefined) {
 							str.splice((lastPathChar+1),0,"!==undefined")
 							i++
-						}				
+						}
 						if(negationCount){
 							for (var loop=0; loop<negationCount; negationCount--){
 								str.splice(i+1,0,")")
@@ -352,7 +353,7 @@ function jsonPath(obj, expr, arg) {
 			var Level1Regex = /([\w\d$]*[A-Za-z_$])(\.{1,2})|(\*?)(\.{1,2})|(\])|(\$)/g
 
 			do {
-				var L1Match = Level1Regex.exec(revExpr); 
+				var L1Match = Level1Regex.exec(revExpr);
 				if(L1Match === null) { break }
 
 				if((lastLastIndex+L1Match[0].length) !== Level1Regex.lastIndex || L1Match[0] === "" ){
@@ -439,7 +440,7 @@ function jsonPath(obj, expr, arg) {
 								break
 							}
 
-							if(!pendingData.length || intraSlice) { pendingData.unshift(null) } 
+							if(!pendingData.length || intraSlice) { pendingData.unshift(null) }
 
 							if (!intraSlice) { intraSlice=true }
 						}
@@ -458,7 +459,7 @@ function jsonPath(obj, expr, arg) {
 							do {
 								L3Match = Level3Regex.exec(revExpr)
 
-								if(L3Match[1]) { 
+								if(L3Match[1]) {
 									filterText+=L3Match[0].replace(/@/g, "@\\")
 								}
 								else if(L3Match[3]) {
@@ -469,14 +470,14 @@ function jsonPath(obj, expr, arg) {
 									filterText+=L3Match[4]
 									closeParens += 1
 								}
-								else if(L3Match[5]||L3Match[6]) { 
+								else if(L3Match[5]||L3Match[6]) {
 									filterText+=L3Match[0].replace(/@/g, "@\\")
 								}
-								else if(L3Match[7]) { 
+								else if(L3Match[7]) {
 									filterText+="==" + L3Match[8]
 								}
-								else if(L3Match[9]) { 
-									if(L3Match[9] === "=" && !/[<>!]/.test(revExpr[Level3Regex.lastIndex])) { 
+								else if(L3Match[9]) {
+									if(L3Match[9] === "=" && !/[<>!]/.test(revExpr[Level3Regex.lastIndex])) {
 										break
 									}
 									filterText+=L3Match[9]
@@ -508,7 +509,7 @@ function jsonPath(obj, expr, arg) {
 
 							if(Level2Regex.lastIndex - Level1Regex.lastIndex === 1) {
 								break
-							} 
+							}
 							else {
 								Level1Regex.lastIndex = Level2Regex.lastIndex
 								break
@@ -566,21 +567,21 @@ function jsonPath(obj, expr, arg) {
 			return !!p;
 		},
 		trace: function(expr, val, path) {
-			
+
 			if(expr === false) return expr
 
 			if (expr.length) {
-				
+
 				var x = expr.slice()
 				var loc = x.shift();
 
-				
+
 				if(val !== null && Array.isArray(val) && loc.constructor === String && loc.match(/^0/) && loc !== "0"){
 					throw new Error("Property name '"+ loc +"' is a string with leading zeros and target is an array!")
 				}
-				
-				if(loc.constructor === Number && Math.sign(loc) === -1 && (val instanceof Array || val.constructor === String)) { 
-					loc = (val.length+loc) 
+
+				if(loc.constructor === Number && Math.sign(loc) === -1 && (val instanceof Array || val.constructor === String)) {
+					loc = (val.length+loc)
 				}
 
 				if(Array.isArray(loc)){
@@ -619,7 +620,7 @@ function jsonPath(obj, expr, arg) {
 						P.walk(loc.expression, x, val, path, function(m,l,x,v,p) {
 							if (P.eval(l.replace(/^\?/,""), v instanceof Array ? v[m] : v, m)) {
 								var tx = x.slice(); tx.unshift(m); P.trace(tx,v,p);
-							} 
+							}
 						});
 					}
 				}
@@ -654,10 +655,10 @@ function jsonPath(obj, expr, arg) {
 				var str="", len, start, end, step=1;
 				loc[0]=loc[0] !== undefined ? loc[0] : null; loc[1]=loc[1] !== undefined ? loc[1] : null; loc[2]=loc[2] !== undefined ? loc[2] : null
 
-				if ((loc[2] === null || loc[2].constructor === Number ? loc[2] : P.eval(loc[2].expression,val,path[path.length-1])) === 0) { 
-					throw new RangeError("Slice step cannot be zero: [" + loc.join(":") + "]") 
+				if ((loc[2] === null || loc[2].constructor === Number ? loc[2] : P.eval(loc[2].expression,val,path[path.length-1])) === 0) {
+					throw new RangeError("Slice step cannot be zero: [" + loc.join(":") + "]")
 				}
-				else { 
+				else {
 					step=parseInt((loc[2] === null || loc[2].constructor === Number ? loc[2] : P.eval(loc[2].expression,val,path[path.length-1]))||step)
 				}
 
@@ -702,12 +703,12 @@ function jsonPath(obj, expr, arg) {
 			try {
 				var evalResult = eval(x.replace(/(^|[^\\])@/g, "$1_v")
 					.replace(/\\@/g, "@")
-					.replace(/(_v(?:(?!(\|\||&&)).)*)=~((?:(?!\)* *(\|\||&&)).)*)/g, 
+					.replace(/(_v(?:(?!(\|\||&&)).)*)=~((?:(?!\)* *(\|\||&&)).)*)/g,
 						function(match, p1, p2, p3, offset, currentString) {
 							return match ? p3.trim()+'.test('+p1.trim()+')' : match
 						}
 					)
-					.replace(/((?:(?!\)* *(\|\||&&)).)*)\s+=~\s+(_v(?:(?!(\|\||&&)).)*)/g, 
+					.replace(/((?:(?!\)* *(\|\||&&)).)*)\s+=~\s+(_v(?:(?!(\|\||&&)).)*)/g,
 						function(match, p1, p2, p3, offset, currentString) {
 							return match ? p1.trim()+'.test('+p3.trim()+')' : match
 						}
@@ -715,17 +716,17 @@ function jsonPath(obj, expr, arg) {
 				);
 				return evalResult
 			}
-			catch(e) { 
+			catch(e) {
 				throw new SyntaxError("eval: " + e.message + ": " + x.replace(/(^|[^\\])@/g, "$1_v")
 					.replace(/\\@/g, "@") /* issue 7 : resolved .. */
 					/* 2020/01/09 - manage regexp syntax "=~" */
-					.replace(/(_v(?:(?!(\|\||&&)).)*)=~((?:(?!\)* *(\|\||&&)).)*)/g, 
-						function(match, p1, p2, p3, offset, currentString) { 
+					.replace(/(_v(?:(?!(\|\||&&)).)*)=~((?:(?!\)* *(\|\||&&)).)*)/g,
+						function(match, p1, p2, p3, offset, currentString) {
 							return match ? p3.trim()+'.test('+p1.trim()+')' : match
 						}
-					) 
-					.replace(/((?:(?!\)* *(\|\||&&)).)*)\s+=~\s+(_v(?:(?!(\|\||&&)).)*)/g, 
-						function(match, p1, p2, p3, offset, currentString) { 
+					)
+					.replace(/((?:(?!\)* *(\|\||&&)).)*)\s+=~\s+(_v(?:(?!(\|\||&&)).)*)/g,
+						function(match, p1, p2, p3, offset, currentString) {
 							return match ? p3.trim()+'.test('+p1.trim()+')' : match
 						}
 					)

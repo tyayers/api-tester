@@ -14,18 +14,23 @@ if (upstreamId && testContent) {
       // request
       if (testCase.body)
         context.setVariable("request.content", testCase.body);
-      
+
       // variables
       if (testCase.variables) {
         // set variables
-        for (var i=0; i<testCase["variables"].length; i++) {
-          var variable = testCase["variables"][i];
-          var equalsIndex = variable.indexOf("=");
-          var variableName = variable.substring(0, equalsIndex);
-          print("Found variable name: " + variableName);
-          var value = variable.substring(equalsIndex + 1);
-          print("Found value: " + value);
-          context.setVariable(variableName, value);
+        var varNames = Object.keys(testCase.variables);
+        for (var i = 0; i < varNames.length; i++) {
+          var varName = varNames[i];
+          context.setVariable(varName, testCase.variables[varName]);
+        }
+      }
+
+      // headers
+      if (testCase.headers) {
+        var headerNames = Object.keys(testCase.headers);
+        for (var i = 0; i < headerNames.length; i++) {
+          var headerName = headerNames[i];
+          context.setVariable("request.header." + headerName, testCase.headers[headerName]);
         }
       }
     }

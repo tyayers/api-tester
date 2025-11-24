@@ -1,25 +1,59 @@
 # API Tester
 A simple TDD unit testing framework for APIs.
 
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/1fe854be-15a2-499b-af7f-9dcb291614dd" />
+
+🚀 Test the beta version live here: https://tdd.upstr.dev.
+
 ## Getting started
-1. You can use the public deployment at [https://tdd.upstr.dev](https://tdd.upstr.dev), or deploy or run your own version (see `2.deploy.sh` script to Google Cloud Run / Cloud Storage).
-2. Click the "Create Test Suite" button to create a suite. The UUID that is shown is your secret to administer and update the tests, it will never be shown again, and should not be committed to any repos.
-3. Click the "Admin Link" to open the admin dashboard. An initial example test is available by default. The `tests` and `assertions` collections can contain as many tests as needed.
+API Tester lets you create API tests in a simple YAML file with detailed test assertions for APIs. Here is an example test:
+
 ```yaml
-name: Mock Target Tests v1
+name: apigee httpbin test
 tests:
-  - name: test response payload
-    url: https://mocktarget.apigee.net
-    path: /json
+  - name: test httpbin get
+    url: https://httpbin.org
+    path: /get
     method: GET
+    headers:
+      Test-Header: test123
     assertions:
-      - $.firstName==john
-      - $.city==San Jose
-      - response.header.content-length==68
+      - $.headers.Host==httpbin.org
+      - $.headers["Test-Header"]==test123
+  - name: test apigee proxy httpbin get
+    url: https://35-190-86-107.nip.io/v1/httpbin
+    path: /get
+    method: GET
+    headers:
+      Test-Header: test123
+    variables:
+      testVar: test456
+    assertions:
+      - $.headers.Host==httpbin.org
+      - $.headers["Test-Header"]==test123
+      - testVar===test456
 ```
-4. A first test run is automatically done, make any changes and re-run by clicking the "Run" button, or doing a REST call. The results are pushed in real-time with SSE to any clients.
-5. Export all tests and results using the "Export All" button, or delete all data with the "Delete All" button.
-6. The "Public Dashboard Link" button opens a read-only version of the dashboard that you can shared with anyone.
+
+The above test suite shows two tests in a test suite. 
+1.  **test httpbin get** does a direct test to `https://httpbin.org/get`, first setting the header `Test-Header` and then testing the payload (in JPATH format) properties in the response. This first type of test can be run on any API just using request / response data.
+2. **test apigee proxy httpbin get** tests an apigee proxy to `https://httpbin.org/get`, and has the additional unit testing capability of setting and testing `variables`. In this test we set the variable `testVar` to test456, and then assert that value in the assertions.
+
+## Apigee proxy unit tests
+You can do detailed unit tests on Apigee proxies by deploying the **Shared Flow** form this repository into your Apigee org, and then setting the **Pre-proxy** and **Post-proxy** Flow hooks in your environment. This will check if the **x-upstream-id** header is set, and if so run the configured unit tests in the proxy. If no header is set, then nothing is done.
+
+Deploy the shared flow using the [apigeecli](https://github.com/apigee/apigeecli).
+```sh
+# clone this repo and import the shared flow
+PROJECT_ID=YOUR_APIGEE_ORG
+ENV=YOUR_APIGEE_ENV
+# create and deploy the shared flow
+apigeecli sharedflows create bundle -n SF-Tester-v1 -f ./apigee/sharedflowbundle -o $PROJECT_ID -e $ENV --ovr -t $(gcloud auth print-access-token)
+
+# attach pre-proxy and post-proxy flowhooks for the environment
+apigeecli flowhooks attach -n PreProxyFlowHook -s SF-Tester-v1 -o $PROJECT_ID -e $ENV -t $(gcloud auth print-access-token)
+apigeecli flowhooks attach -n PostProxyFlowHook -s SF-Tester-v1 -o $PROJECT_ID -e $ENV -t $(gcloud auth print-access-token)
+```
+In case you already have shared flows in the Pre-proxy and Post-proxy hooks, then you will have to add a new shared flow that calls both flows.
 
 ## Configuration guide
 ### Headers
@@ -34,7 +68,6 @@ tests:
     headers:
       Test-Header: test123
     assertions:
-      - response.header.content-length===384
       - $.headers.Host==httpbin.org
       - $.headers["Test-Header"]==test123
 ```
@@ -55,9 +88,9 @@ tests:
       - $.json.test1==test2
 ```
 ### Variables
-Variables can both be set and tested, which is needed to realize the full potential of TDD and unit tests. For this to work for API traffic, the proxy or service processor need to either run the tests in-process to allow for variable testing, or export a trace of all internal variables both before and after processing.
+Variables can only be set and tested if using the Apigee shared flow above, since only then do we have access to the runtime processing information. 
 
-Here is an example of a test that checks the internal variables "llm.promptInput" and "llm.promptEstimatedTokenCount". The "runner" property is also set to "external", because only an external test running in the API platform can verify internal variables.
+In this example we both set a variable in the **variables** collection and test variable values in the **assertions**.
 
 ```yaml
 name: LLM Feature Proxy Tests
@@ -65,6 +98,8 @@ tests:
   - name: test openai prompt input simple
     runner: external
     body: '{"messages": [{"role": "user", "content": "why is the sky blue?"}]}'
+    variables:
+      llm.promptInput: why is the sky blue?
     assertions:
       - llm.promptInput===why is the sky blue?
       - llm.promptEstimatedTokenCount===6.666666666666667
