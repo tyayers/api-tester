@@ -435,6 +435,7 @@ async function runTests(tests: any): Promise<any> {
             extra: {
               testCase: testCaseObject.name,
               response: "",
+              responseStatusCode: -1,
               responseHeaders: {},
             },
             results: {
@@ -452,34 +453,42 @@ async function runTests(tests: any): Promise<any> {
             },
           };
 
-          if (testCaseObject.url && testCaseObject.runner != "external") {
+          if (testCaseObject.url) {
+            let headers = testCaseObject.headers ?? {};
+            headers["x-upstream-id"] = tests.id;
             let response = await fetch(
               testCaseObject.url + (testCaseObject.path ?? ""),
               {
                 method: testCaseObject.method ?? "GET",
                 body: testCaseObject.body,
-                headers: testCaseObject.headers,
+                headers: headers,
               },
             );
             let responseContent = await response.text();
             testResults.extra.response = responseContent;
+            testResults.extra.responseStatusCode = response.status;
             for (let header of response.headers) {
               testResults.extra.responseHeaders[header[0]] = header[1];
             }
-            checkAssertions(
-              testCaseObject,
-              testResults,
-              response,
-              responseContent,
-            );
-            testResults.results.summary.stop = Date.now();
-            results.push(testResults);
-            updateResults(tests.viewId, testResults);
-            updateTestCaseResults(
-              tests.viewId,
-              testCaseObject.name,
-              testResults,
-            );
+            if (!response.headers.get("x-upstream-results")) {
+              console.log("No results found in response, doing assertions...");
+              checkAssertions(
+                testCaseObject,
+                testResults,
+                response,
+                responseContent,
+              );
+              testResults.results.summary.stop = Date.now();
+              results.push(testResults);
+              updateResults(tests.viewId, testResults);
+              updateTestCaseResults(
+                tests.viewId,
+                testCaseObject.name,
+                testResults,
+              );
+            } else {
+              console.log("Results found in response, skipped assertions...");
+            }
           }
         }
       }

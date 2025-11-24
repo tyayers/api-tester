@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="icon" type="image/x-icon" href="/favicon.png" />
+        <link rel="icon" type="image/x-icon" href="/favicon.svg" />
         <title>API Tester - Test Details</title>
         <!-- Load Tailwind CSS -->
         <script src="https://cdn.tailwindcss.com"></script>
@@ -329,11 +329,12 @@
                     <div class="space-y-2">
                       ${testCasesHtml}
                     </div>
-                    <h4 class="text-lg font-semibold mt-6 mb-3 text-gray-200">Response headers, if available:</h4>
+                    <h4 class="text-lg font-semibold mt-6 mb-3 text-gray-200">Response code: ${run.extra.responseStatusCode ? run.extra.responseStatusCode : "Not found."}</h4>
+                    <h4 class="text-lg font-semibold mt-6 mb-3 text-gray-200">Response headers:</h4>
                     <div class="p-3 bg-gray-700/50 rounded-md mb-2 text-sm border border-gray-700/80 overflow-y-auto max-h-[140px]">
                       ${run.extra.responseHeaders ? JSON.stringify(run.extra.responseHeaders) : "Not found."}
                     </div>
-                    <h4 class="text-lg font-semibold mt-6 mb-3 text-gray-200">Response content, if available:</h4>
+                    <h4 class="text-lg font-semibold mt-6 mb-3 text-gray-200">Response content:</h4>
                     <div class="p-3 bg-gray-700/50 rounded-md mb-2 text-sm border border-gray-700/80 overflow-y-auto max-h-[140px]">
                       ${run.extra.response ? JSON.stringify(run.extra.response) : "Not found."}
                     </div>
