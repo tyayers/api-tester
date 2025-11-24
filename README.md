@@ -1,5 +1,5 @@
-# Upstream TDD
-A simple TDD unit testing framework for APIs and API proxy and management platforms.
+# API Tester
+A simple TDD unit testing framework for APIs.
 
 ## Getting started
 1. You can use the public deployment at [https://tdd.upstr.dev](https://tdd.upstr.dev), or deploy or run your own version (see `2.deploy.sh` script to Google Cloud Run / Cloud Storage).
@@ -17,7 +17,7 @@ tests:
       - $.city==San Jose
       - response.header.content-length==68
 ```
-4. A first test run is automatically done, make any changes and re-run by clicking the "Save & Run" button, or doing a REST call. The results are pushed in real-time with SSE to any clients.
+4. A first test run is automatically done, make any changes and re-run by clicking the "Run" button, or doing a REST call. The results are pushed in real-time with SSE to any clients.
 5. Export all tests and results using the "Export All" button, or delete all data with the "Delete All" button.
 6. The "Public Dashboard Link" button opens a read-only version of the dashboard that you can shared with anyone.
 
